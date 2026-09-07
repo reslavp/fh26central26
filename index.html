@@ -1,0 +1,1851 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=10, viewport-fit=cover">
+<title>Recherche de stand</title>
+<style>
+  :root{
+    --bg: #F5F7F8;
+    --surface: #FFFFFF;
+    --text: #1B2430;
+    --text-soft: #5B6472;
+    --accent: #1E5F74;
+    --accent-dark: #143F4E;
+    --border: #E1E5E8;
+    --badge-bg: #C1440E;
+    --badge-text: #FFFFFF;
+    --radius: 14px;
+  }
+  *{ box-sizing: border-box; }
+  html, body{
+    margin:0; padding:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  body{
+    min-height: 100vh;
+    display:flex;
+    flex-direction: column;
+    padding-bottom: 40px;
+  }
+
+  /* ---------- Ecran de verrouillage ---------- */
+  #lockScreen{
+    position: fixed;
+    inset: 0;
+    background: var(--accent-dark);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 100;
+  }
+  #lockScreen.hidden{ display: none; }
+  .lock-box{
+    width: 100%;
+    max-width: 320px;
+    text-align: center;
+  }
+  .lock-box h1{
+    font-size: 1.15rem;
+    margin: 0 0 6px;
+  }
+  .lock-box p{
+    font-size: 0.85rem;
+    color: rgba(255,255,255,0.75);
+    margin: 0 0 18px;
+  }
+  .lock-box input{
+    width: 100%;
+    font-size: 16px;
+    padding: 13px 14px;
+    border-radius: 10px;
+    border: none;
+    outline: none;
+    text-align: center;
+    letter-spacing: 0.05em;
+  }
+  .lock-box input:focus{
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.35);
+  }
+  .lock-box button{
+    width: 100%;
+    margin-top: 12px;
+    background: #fff;
+    color: var(--accent-dark);
+    border: none;
+    border-radius: 10px;
+    padding: 13px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .lock-error{
+    color: #FFD5CC;
+    font-size: 0.82rem;
+    margin-top: 10px;
+    min-height: 1.2em;
+  }
+
+  /* ---------- Contenu principal ---------- */
+  #app.hidden{ display: none; }
+  header{
+    background: #000000;
+    color: #fff;
+    padding: 18px 18px 16px;
+  }
+  header h1{
+    margin: 14px 0 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    text-align: center;
+  }
+  .header-badges{
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+  }
+  .header-badge{
+    flex-shrink: 0;
+    width: 72px;
+    height: 72px;
+    border-radius: 999px;
+    background: var(--badge-bg);
+    color: var(--badge-text);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4px 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.1;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 2px 6px rgba(193,68,14,0.35);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .header-badge:active{ transform: scale(0.95); }
+  .header-badge.active{
+    background: #fff;
+    color: var(--badge-bg);
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.4);
+  }
+  .header-panel{
+    margin-top: 10px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 0.9rem;
+  }
+  .header-panel.hidden{ display: none; }
+  .header-panel ul{
+    margin: 0;
+    padding-left: 18px;
+  }
+  .header-panel li{ margin-bottom: 4px; }
+  .header-panel p.placeholder{
+    margin: 0;
+    color: rgba(255,255,255,0.7);
+    font-style: italic;
+  }
+  .prog-tabs{
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .prog-tab{
+    flex: 1;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: #fff;
+    border-radius: 8px;
+    padding: 8px 4px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .prog-tab.active{
+    background: #fff;
+    color: #000;
+  }
+  .prog-list{
+    max-height: 46vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .prog-item{
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 9px 12px;
+  }
+  .prog-time{
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #fff;
+  }
+  .prog-scene{
+    font-size: 0.76rem;
+    color: rgba(255,255,255,0.65);
+    margin-top: 2px;
+  }
+  .prog-artist{
+    font-size: 0.98rem;
+    font-weight: 800;
+    margin-top: 3px;
+  }
+  .search-wrap{
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--bg);
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .search-box{
+    position: relative;
+  }
+  .search-box input{
+    width: 100%;
+    font-size: 16px;
+    padding: 13px 40px 13px 16px;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+  }
+  .search-box input:focus{
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(30,95,116,0.15);
+  }
+  .search-box button.clear{
+    position:absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    color: var(--text-soft);
+    font-size: 20px;
+    line-height: 1;
+    padding: 8px;
+    cursor: pointer;
+    display: none;
+  }
+  .search-box.has-value button.clear{ display:block; }
+  main{
+    flex: 1;
+    padding: 14px 16px 0;
+    max-width: 640px;
+    width: 100%;
+    margin: 0 auto;
+  }
+  .count{
+    font-size: 0.82rem;
+    color: var(--text-soft);
+    margin: 4px 2px 14px;
+  }
+  .list{
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .card .main-info{ min-width: 0; }
+  .card h2{
+    margin: 0 0 8px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    word-break: break-word;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .stand-name{
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: rgba(30,95,116,0.35);
+    text-underline-offset: 3px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .stand-name:active{ opacity: 0.6; }
+  .flag-badge{
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 6px;
+    background: rgba(30,95,116,0.12);
+    color: var(--accent-dark);
+    font-size: 0.75rem;
+    font-weight: 800;
+  }
+  .field-row{
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+  .field-row .label{ color: var(--text-soft); font-weight: 700; }
+  .field-row .value{ font-size: 0.95rem; }
+  .badge{
+    flex-shrink: 0;
+    background: var(--badge-bg);
+    color: var(--badge-text);
+    border-radius: 999px;
+    min-width: 76px;
+    width: 76px;
+    height: 76px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    padding: 4px 6px;
+    box-shadow: 0 2px 6px rgba(193,68,14,0.35);
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .badge:active{ transform: scale(0.95); }
+  .badge:focus-visible{ outline: 3px solid var(--accent-dark); outline-offset: 2px; }
+  .badge .num{ font-size: 1.9rem; font-weight: 800; line-height: 1; }
+  .badge .tag{ font-size: 0.68rem; line-height: 1; margin-top: 4px; color: rgba(255,255,255,0.9); }
+  .badge-col{
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .badge-secondary{
+    width: 76px;
+    height: 76px;
+    min-width: 76px;
+    background: var(--badge-bg);
+    box-shadow: 0 2px 6px rgba(193,68,14,0.35);
+  }
+  .badge-secondary .num{ font-size: 1.9rem; }
+  .badge-secondary .tag{ font-size: 0.68rem; }
+
+  .filter-banner{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: rgba(30,95,116,0.1);
+    border: 1px solid rgba(30,95,116,0.25);
+    color: var(--accent-dark);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 0.88rem;
+    margin-bottom: 12px;
+  }
+  .filter-banner strong{ font-weight: 800; }
+  .filter-banner button{
+    flex-shrink: 0;
+    background: var(--accent-dark);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .empty{
+    text-align: center;
+    color: var(--text-soft);
+    padding: 40px 16px;
+    font-size: 0.95rem;
+  }
+  footer{
+    max-width: 640px;
+    margin: 24px auto 0;
+    width: 100%;
+    padding: 0 16px;
+  }
+  .footer-btn{
+    width: 100%;
+    background: transparent;
+    border: 1.5px dashed var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 0.85rem;
+    color: var(--text-soft);
+    cursor: pointer;
+  }
+  .footer-btn:active{ background: rgba(0,0,0,0.03); }
+  .import-panel{
+    margin-top: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .import-panel p{
+    margin: 0 0 8px;
+    font-size: 0.82rem;
+    color: var(--text-soft);
+    line-height: 1.4;
+  }
+  .import-panel textarea{
+    width: 100%;
+    min-height: 140px;
+    font-size: 14px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    resize: vertical;
+  }
+  .import-actions{
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .btn{
+    font-size: 0.85rem;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .btn-primary{ background: var(--accent); color: #fff; }
+  .btn-secondary{ background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+  .btn-danger{ background: transparent; color: #B23A2E; border: 1px solid #E7C6C1; }
+  .status-msg{ font-size: 0.8rem; margin-top: 8px; }
+  .status-msg.ok{ color: #1E7A45; }
+  .status-msg.err{ color: #B23A2E; }
+  :focus-visible{ outline: 3px solid var(--accent); outline-offset: 1px; }
+  @media (min-width: 480px){ .card h2{ font-size: 1.1rem; } }
+
+  /* ---------- Ajustements paysage (petits écrans) ---------- */
+  @media (orientation: landscape) and (max-height: 500px){
+    header{ padding: 12px 18px 10px; }
+    header h1{ font-size: 1.1rem; margin-bottom: 2px; }
+    header p{ font-size: 0.8rem; }
+    .search-wrap{ padding: 10px 16px 8px; }
+    main{ max-width: 900px; }
+    .list{
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .card{ padding: 10px 12px; }
+    .badge, .badge-secondary{ width: 60px; height: 60px; min-width: 60px; }
+    .badge .num{ font-size: 1.4rem; }
+    footer{ max-width: 900px; }
+  }  .plan-overlay{
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 200;
+  }
+  .plan-overlay.hidden{ display: none; }
+  .plan-scroll{
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    touch-action: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .plan-stage{
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    max-height: 100%;
+    transform-origin: 0 0;
+    will-change: transform;
+  }
+  .plan-img{
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    display: block;
+    margin: auto;
+    -webkit-user-drag: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  .plan-tiles{
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  .plan-tile{
+    position: absolute;
+    display: block;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    -webkit-user-drag: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  .plan-tile.loaded{ opacity: 1; }
+  .stand-marker{
+    position: absolute;
+    width: 64px;
+    height: 64px;
+    left: 0;
+    top: 0;
+    --counter-scale: 1;
+    transform: translate(-50%, -50%) scale(var(--counter-scale));
+    border: 6px solid #E11D2A;
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.85), 0 0 14px rgba(0,0,0,0.5);
+    pointer-events: none;
+  }
+  .stand-highlight{
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 0;
+    height: 0;
+    background: rgba(247, 255, 0, 0.75);
+    mix-blend-mode: multiply;
+    outline: 2px solid rgba(180, 160, 0, 0.9);
+    border-radius: 3px;
+    pointer-events: none;
+  }
+  .plan-close{
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 201;
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    border: none;
+    background: rgba(255,255,255,0.9);
+    color: #000;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .plan-quality-toggle{
+    position: fixed;
+    top: 12px;
+    right: 60px;
+    z-index: 201;
+    min-width: 40px;
+    height: 40px;
+    padding: 0 10px;
+    border-radius: 999px;
+    border: none;
+    background: rgba(255,255,255,0.9);
+    color: #000;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div id="planOverlay" class="plan-overlay hidden">
+  <button type="button" class="plan-close" onclick="closePlanOverlay()" aria-label="Fermer le plan">×</button>
+  <button type="button" class="plan-quality-toggle" id="planQualityToggle" onclick="togglePlanQuality()" aria-label="Changer la qualité du plan">SD</button>
+  <div class="plan-scroll">
+    <div class="plan-stage">
+      <img src="plan-hd.jpg" alt="Plan général du site" class="plan-img" id="planImg">
+      <div class="plan-tiles" id="planTiles"></div>
+      <div class="stand-marker" id="standMarker" style="display:none;"></div>
+      <div class="stand-highlight" id="standHighlight" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<div id="lockScreen">
+  <div class="lock-box">
+    <h1>Accès protégé</h1>
+    <p>Entrez le mot de passe pour consulter la liste. Il ne sera demandé qu'une seule fois sur cet appareil.</p>
+    <label for="passwordInput" style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0);">Mot de passe</label>
+    <input id="passwordInput" type="password" inputmode="text" autocomplete="off" placeholder="Mot de passe">
+    <button id="unlockBtn">Valider</button>
+    <div class="lock-error" id="lockError"></div>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <header>
+    <div class="header-badges">
+      <button type="button" class="header-badge" id="hb-left" onclick="openPlanImage()">Plan</button>
+      <button type="button" class="header-badge" id="hb-middle" onclick="toggleHeaderPanel('middle')">Prog</button>
+      <button type="button" class="header-badge" id="hb-numeros" onclick="toggleHeaderPanel('numeros')">Numéros</button>
+    </div>
+    <h1>AS Central</h1>
+    <div class="header-panel hidden" id="headerPanel"></div>
+  </header>
+
+  <div class="search-wrap">
+    <div class="search-box" id="searchBox">
+      <label for="searchInput" style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0);">Rechercher un stand</label>
+      <input id="searchInput" type="text" inputmode="search" autocomplete="off" placeholder="Rechercher Nom du stand / Rue / Zone">
+      <button class="clear" id="clearBtn" aria-label="Effacer la recherche">×</button>
+    </div>
+  </div>
+
+  <main>
+    <div class="count" id="countMsg" aria-live="polite"></div>
+    <div class="list" id="list"></div>
+  </main>
+
+</div>
+
+<script>
+  /* ---------- Mot de passe ---------- */
+  const PASSWORD = "central26";
+  const UNLOCK_KEY = "stands_unlocked_v2";
+
+  const lockScreen = document.getElementById("lockScreen");
+  const appEl = document.getElementById("app");
+  const passwordInput = document.getElementById("passwordInput");
+  const unlockBtn = document.getElementById("unlockBtn");
+  const lockError = document.getElementById("lockError");
+
+  function tryUnlock(){
+    if (passwordInput.value === PASSWORD){
+      try { localStorage.setItem(UNLOCK_KEY, "1"); } catch(e){}
+      showApp();
+    } else {
+      lockError.textContent = "Mot de passe incorrect.";
+      passwordInput.value = "";
+      passwordInput.focus();
+    }
+  }
+
+  function showApp(){
+    lockScreen.classList.add("hidden");
+    appEl.classList.remove("hidden");
+    render();
+  }
+
+  unlockBtn.addEventListener("click", tryUnlock);
+  passwordInput.addEventListener("keydown", (e) => { if (e.key === "Enter") tryUnlock(); });
+
+  let alreadyUnlocked = false;
+  try { alreadyUnlocked = localStorage.getItem(UNLOCK_KEY) === "1"; } catch(e){}
+
+  /* ---------- Données des stands ----------
+     La liste est fixée dans le code ci-dessous. Les visiteurs ne peuvent
+     ni la modifier ni la mettre à jour depuis la page. Pour changer les
+     données, éditer directement ce fichier (tableau DEFAULT_DATA) et
+     redéployer sur l'hébergement. */
+  const DEFAULT_DATA = [
+    { stand: "Plessis Pâte", flag: "", rue: "Avenue Bobby Sands", pompier: "13", pompier2: "", zone: "Entrée publique NO", pedestrian: "Rue Entrée publique NO - Jack Ralite" },
+    { stand: "Oise Expo", flag: "", rue: "Avenue Bobby Sands", pompier: "13", pompier2: "", zone: "Entrée publique NO", pedestrian: "Rue Entrée publique NO - Jack Ralite" },
+    { stand: "Génération.s", flag: "", rue: "Avenue Bobby Sands", pompier: "12", pompier2: "", zone: "Entrée publique NO", pedestrian: "Rue Entrée publique NO - Jack Ralite" },
+    { stand: "EELV", flag: "", rue: "Avenue Bobby Sands", pompier: "12", pompier2: "", zone: "Entrée publique NO", pedestrian: "Rue Entrée publique NO - Jack Ralite" },
+    { stand: "Debout (la France)", flag: "", rue: "Avenue Bobby Sands", pompier: "12", pompier2: "", zone: "Entrée publique NO", pedestrian: "Rue Entrée publique NO - Jack Ralite" },
+    { stand: "Saint Quentin", flag: "X", rue: "Avenue Bobby Sands", pompier: "11", pompier2: "", zone: "Jack Ralite", pedestrian: "Rue Entrée publique NO - Jack Ralite" },
+    { stand: "FD Ain", flag: "", rue: "Avenue Bobby Sands", pompier: "11", pompier2: "", zone: "Jack Ralite", pedestrian: "Jacques ralite - Forum social" },
+    { stand: "FSGT", flag: "", rue: "Place Odette Niles", pompier: "13", pompier2: "", zone: "Entrée publique NO", pedestrian: "Rue Entrée publique NO - Jack Ralite" },
+    { stand: "Justice pour Adama", flag: "", rue: "Place Odette Niles", pompier: "13", pompier2: "", zone: "Entrée publique NO", pedestrian: "Rue Entrée publique NO - Jack Ralite" },
+    { stand: "Les Inverties", flag: "", rue: "Avenue Bobby Sands", pompier: "13", pompier2: "", zone: "Entrée publique NO", pedestrian: "Rue Entrée publique NO - Jack Ralite" },
+    { stand: "NPA", flag: "X", rue: "Avenue Bobby Sands", pompier: "12", pompier2: "", zone: "Entrée publique NO", pedestrian: "Rue Entrée publique NO - Jack Ralite" },
+    { stand: "Vitry Rassemblé(e)", flag: "", rue: "Avenue Bobby Sands", pompier: "12", pompier2: "", zone: "Entrée publique NO", pedestrian: "Rue Entrée publique NO - Jack Ralite" },
+    { stand: "Confédération Paysanne", flag: "", rue: "Avenue Bobby Sands", pompier: "12", pompier2: "", zone: "Jack Ralite", pedestrian: "Rue Entrée publique NO - Jack Ralite" },
+    { stand: "Red Jeunes", flag: "", rue: "Avenue Bobby Sands", pompier: "12", pompier2: "", zone: "Jack Ralite", pedestrian: "Rue Entrée publique NO - Jack Ralite" },
+    { stand: "Rev", flag: "", rue: "Avenue Bobby Sands", pompier: "12", pompier2: "", zone: "Jack Ralite", pedestrian: "Rue Entrée publique NO - Jack Ralite" },
+    { stand: "Non Violence", flag: "", rue: "Place Agnès Varda", pompier: "11", pompier2: "", zone: "Jack Ralite", pedestrian: "Place Jack Ralite" },
+    { stand: "Santé en Danger", flag: "", rue: "Place Agnès Varda", pompier: "11", pompier2: "", zone: "Jack Ralite", pedestrian: "Place Jack Ralite" },
+    { stand: "SOS Racisme", flag: "", rue: "Place Agnès Varda", pompier: "11", pompier2: "", zone: "Jack Ralite", pedestrian: "Place Jack Ralite" },
+    { stand: "La Jeunesse Communiste", flag: "", rue: "Avenue Frida Kahlo", pompier: "11", pompier2: "2", zone: "Jack Ralite", pedestrian: "Place Jack Ralite - Plaine Baker" },
+    { stand: "UNEF", flag: "", rue: "Avenue Frida Kahlo", pompier: "11", pompier2: "2", zone: "Jack Ralite", pedestrian: "Place Jack Ralite - Plaine Baker" },
+    { stand: "PCF 04", flag: "", rue: "Place Agnès Varda", pompier: "11", pompier2: "", zone: "Jack Ralite", pedestrian: "Place Jack Ralite" },
+    { stand: "NPA Révolutionnaires", flag: "X", rue: "Place Agnès Varda", pompier: "11", pompier2: "", zone: "Jack Ralite", pedestrian: "Place Jack Ralite" },
+    { stand: "Avocats", flag: "", rue: "Place Agnès Varda", pompier: "11", pompier2: "", zone: "Jack Ralite", pedestrian: "Place Jack Ralite" },
+    { stand: "CGT FTDNEEA", flag: "", rue: "Place Agnès Varda", pompier: "11", pompier2: "", zone: "Jack Ralite", pedestrian: "Place Jack Ralite" },
+    { stand: "USS", flag: "", rue: "Place Agnès Varda", pompier: "11", pompier2: "", zone: "Jack Ralite", pedestrian: "Place Jack Ralite" },
+    { stand: "JOC", flag: "", rue: "Avenue Frida Kahlo", pompier: "11", pompier2: "", zone: "Jack Ralite", pedestrian: "Place Jack Ralite" },
+    { stand: "Safe Plaine", flag: "", rue: "Avenue Marcel Cachin", pompier: "13", pompier2: "", zone: "Entrée publique NO", pedestrian: "Rue Entrée publique NO - Plaine Baker" },
+    { stand: "Bobigny", flag: "", rue: "Avenue Marcel Cachin", pompier: "13", pompier2: "", zone: "Entrée publique NO", pedestrian: "Rue Entrée publique NO - Plaine Baker" },
+    { stand: "FD93", flag: "", rue: "Avenue Marcel Cachin", pompier: "13", pompier2: "", zone: "Entrée publique NO", pedestrian: "Rue Entrée publique NO - Plaine Baker" },
+    { stand: "Roissy", flag: "", rue: "Avenue Marcel Cachin", pompier: "13", pompier2: "", zone: "Entrée publique NO", pedestrian: "Rue Entrée publique NO - Plaine Baker" },
+    { stand: "Tremblay", flag: "", rue: "Avenue Marcel Cachin", pompier: "2", pompier2: "", zone: "Entrée publique NO", pedestrian: "Rue Entrée publique NO - Plaine Baker" },
+    { stand: "Livry", flag: "", rue: "Avenue Marcel Cachin", pompier: "2", pompier2: "", zone: "Plaine baker", pedestrian: "Rue Entrée publique NO - Plaine baker" },
+    { stand: "Aubervilliers", flag: "", rue: "Avenue Marcel Cachin", pompier: "2", pompier2: "", zone: "Plaine baker", pedestrian: "Rue Entrée publique NO - Plaine baker" },
+    { stand: "Le Blanc-Mesnil", flag: "", rue: "Avenue Marcel Cachin", pompier: "2", pompier2: "", zone: "Plaine baker", pedestrian: "Rue Entrée publique NO - Plaine baker" },
+    { stand: "St Denis", flag: "", rue: "Avenue Marcel Cachin", pompier: "2", pompier2: "", zone: "Plaine baker", pedestrian: "Rue Entrée publique NO - Plaine baker" },
+    { stand: "Bretigny", flag: "", rue: "Avenue Marcel Cachin", pompier: "13", pompier2: "", zone: "Entrée publique NO", pedestrian: "Rue Entrée publique NO - Plaine Baker" },
+    { stand: "LDH", flag: "", rue: "Avenue Marcel Cachin", pompier: "13", pompier2: "", zone: "Entrée publique NO", pedestrian: "Rue Entrée publique NO - Plaine Baker" },
+    { stand: "La Familiale", flag: "", rue: "Avenue Marcel Cachin", pompier: "13", pompier2: "", zone: "Entrée publique NO", pedestrian: "Rue Entrée publique NO - Plaine Baker" },
+    { stand: "Montfermeil-Clichy", flag: "", rue: "Avenue Marcel Cachin", pompier: "13", pompier2: "", zone: "Entrée publique NO", pedestrian: "Rue Entrée publique NO - Plaine Baker" },
+    { stand: "Bagnolet-Montreuil", flag: "", rue: "Avenue Marcel Cachin", pompier: "13", pompier2: "", zone: "Entrée publique NO", pedestrian: "Rue Entrée publique NO - Plaine Baker" },
+    { stand: "Saint Ouen Épinay", flag: "", rue: "Plaine Emmeline Pankhurst", pompier: "2", pompier2: "", zone: "Plaine baker", pedestrian: "Plaine baker - Fond Plaine" },
+    { stand: "Noisy le Sec Bondy", flag: "", rue: "Plaine Emmeline Pankhurst", pompier: "2", pompier2: "", zone: "Plaine baker", pedestrian: "Plaine baker - Fond Plaine" },
+    { stand: "Pantin", flag: "", rue: "Plaine Emmeline Pankhurst", pompier: "2", pompier2: "", zone: "Plaine baker", pedestrian: "Plaine baker - Fond Plaine" },
+    { stand: "Vienne", flag: "", rue: "Plaine Emmeline Pankhurst", pompier: "2", pompier2: "", zone: "Plaine baker", pedestrian: "Plaine baker - Fond Plaine" },
+    { stand: "Cop'i", flag: "", rue: "Avenue Frida Kahlo", pompier: "2", pompier2: "", zone: "Place Jack Ralite - Plaine Baker", pedestrian: "Place Jack Ralite - Plaine Baker" },
+    { stand: "Extinction Rebellion", flag: "X", rue: "Avenue Frida Kahlo", pompier: "2", pompier2: "", zone: "Place Jack Ralite - Plaine Baker", pedestrian: "Place Jack Ralite - Plaine Baker" },
+    { stand: "FSE", flag: "", rue: "Avenue Frida Kahlo", pompier: "2", pompier2: "", zone: "Place Jack Ralite - Plaine Baker", pedestrian: "Place Jack Ralite - Plaine Baker" },
+    { stand: "AJC / BDR", flag: "", rue: "Avenue Frida Kahlo", pompier: "2", pompier2: "", zone: "Place Jack Ralite - Plaine Baker", pedestrian: "Place Jack Ralite - Plaine Baker" },
+    { stand: "L'Après", flag: "", rue: "Avenue Frida Kahlo", pompier: "2", pompier2: "", zone: "Place Jack Ralite - Plaine Baker", pedestrian: "Place Jack Ralite - Plaine Baker" },
+    { stand: "Jeunes ADMD", flag: "", rue: "Avenue Pierre Bourdieu", pompier: "2", pompier2: "", zone: "Plaine Baker Zone Est", pedestrian: "Plaine baker - Agora - Côté Ouest" },
+    { stand: "La Cimade", flag: "", rue: "Avenue Pierre Bourdieu", pompier: "2", pompier2: "", zone: "Plaine Baker Zone Est", pedestrian: "Plaine baker - Agora - Côté Ouest" },
+    { stand: "Parti Socialiste", flag: "", rue: "Avenue Pierre Bourdieu", pompier: "2", pompier2: "", zone: "Plaine Baker Zone Est", pedestrian: "Plaine baker - Agora - Côté Ouest" },
+    { stand: "Amis du Temps des Cerises", flag: "", rue: "Avenue Pierre Bourdieu", pompier: "3", pompier2: "", zone: "Plaine Baker Zone Est", pedestrian: "Plaine baker - Agora - Côté Ouest" },
+    { stand: "FD Doubs", flag: "", rue: "Avenue Pierre Bourdieu", pompier: "3", pompier2: "", zone: "Plaine Baker Zone Est", pedestrian: "Plaine baker - Agora - Côté Ouest" },
+    { stand: "Landes", flag: "", rue: "Avenue Pierre Bourdieu", pompier: "3", pompier2: "", zone: "Plaine Baker Zone Est", pedestrian: "Plaine baker - Agora - Côté Ouest" },
+    { stand: "Pyrénées-Atlantiques (64)", flag: "", rue: "Avenue Pierre Bourdieu", pompier: "3", pompier2: "", zone: "Plaine Baker Zone Est", pedestrian: "Plaine baker - Agora - Côté Ouest" },
+    { stand: "Dordogne-Gironde", flag: "", rue: "Avenue Pierre Bourdieu", pompier: "3", pompier2: "", zone: "Plaine Baker Zone Est", pedestrian: "Plaine baker - Agora - Côté Ouest" },
+    { stand: "Cote d Or 21", flag: "", rue: "Avenue Pierre Bourdieu", pompier: "2", pompier2: "", zone: "Plaine Baker Zone Est", pedestrian: "Plaine baker - Agora - Côté Ouest" },
+    { stand: "Jura", flag: "", rue: "Avenue Pierre Bourdieu", pompier: "2", pompier2: "", zone: "Plaine Baker Zone Est", pedestrian: "Plaine baker - Agora - Côté Ouest" },
+    { stand: "Belfort", flag: "", rue: "Avenue Pierre Bourdieu", pompier: "3", pompier2: "", zone: "Plaine Baker Zone Est", pedestrian: "Plaine baker - Agora - Côté Ouest" },
+    { stand: "FD de l'Yonne", flag: "", rue: "Avenue Pierre Bourdieu", pompier: "3", pompier2: "", zone: "Plaine Baker Zone Est", pedestrian: "Plaine baker - Agora - Côté Ouest" },
+    { stand: "Haute-Saône", flag: "", rue: "Avenue Pierre Bourdieu", pompier: "3", pompier2: "", zone: "Plaine Baker Zone Est", pedestrian: "Plaine baker - Agora - Côté Ouest" },
+    { stand: "Charente-Maritime", flag: "", rue: "Avenue Pierre Bourdieu", pompier: "3", pompier2: "", zone: "Plaine Baker Zone Est", pedestrian: "Plaine baker - Agora - Côté Ouest" },
+    { stand: "Lot-et-Garonne (47)", flag: "", rue: "Avenue Pierre Bourdieu", pompier: "3", pompier2: "", zone: "Plaine Baker Zone Est", pedestrian: "Plaine baker - Agora - Côté Ouest" },
+    { stand: "Haute-Vienne", flag: "", rue: "Avenue Pierre Bourdieu", pompier: "3", pompier2: "", zone: "Plaine Baker Zone Est", pedestrian: "Plaine baker - Agora - Côté Ouest" },
+    { stand: "Amis Huma", flag: "", rue: "Avenue Pierre Bourdieu", pompier: "3", pompier2: "", zone: "Plaine Baker Zone Est", pedestrian: "Plaine baker - Agora - Côté Ouest" },
+    { stand: "FD Drôme", flag: "", rue: "Avenue Louis Viannet", pompier: "11", pompier2: "", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite - Forum social" },
+    { stand: "Allier 03", flag: "", rue: "Avenue Louis Viannet", pompier: "11", pompier2: "", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite - Forum social" },
+    { stand: "Vaucluse", flag: "", rue: "Avenue Louis Viannet", pompier: "11", pompier2: "", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite - Forum social" },
+    { stand: "Haute Corse", flag: "", rue: "Rue Rosa Luxembourg", pompier: "11", pompier2: "4", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite -Agora zone NO" },
+    { stand: "Les 3 Bougnats", flag: "", rue: "Avenue Louis Viannet", pompier: "11", pompier2: "", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite - Forum social" },
+    { stand: "FD Isère", flag: "", rue: "Avenue Louis Viannet", pompier: "11", pompier2: "", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite - Forum social" },
+    { stand: "Rhône-Alpes 2 Savoies", flag: "", rue: "Avenue Louis Viannet", pompier: "11", pompier2: "", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite - Forum social" },
+    { stand: "Ardèche & Loire", flag: "", rue: "Avenue Louis Viannet", pompier: "11", pompier2: "", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite - Forum social" },
+    { stand: "FSU", flag: "", rue: "Avenue Louis Viannet", pompier: "11", pompier2: "", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite - Forum social" },
+    { stand: "VTS", flag: "", rue: "Rue Rosa Luxembourg", pompier: "11", pompier2: "", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite -Agora zone NO" },
+    { stand: "Forum social", flag: "", rue: "Avenue Louis Viannet", pompier: "11", pompier2: "", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite - Forum social" },
+    { stand: "Amnesty International", flag: "", rue: "Avenue Louis Viannet", pompier: "10", pompier2: "", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite - Forum social" },
+    { stand: "JC Loire-Atlantique", flag: "", rue: "Avenue Louis Viannet", pompier: "10", pompier2: "", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite - Forum social" },
+    { stand: "Loire-Atlantique", flag: "", rue: "Avenue Louis Viannet", pompier: "10", pompier2: "", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite - Forum social" },
+    { stand: "Maine-et-Loire", flag: "", rue: "Avenue Louis Viannet", pompier: "10", pompier2: "", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite - Forum social" },
+    { stand: "JC Maine-et-Loire", flag: "", rue: "Avenue Louis Viannet", pompier: "10", pompier2: "", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite - Forum social" },
+    { stand: "JC Vendée", flag: "", rue: "Avenue Louis Viannet", pompier: "10", pompier2: "", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite - Forum social" },
+    { stand: "Vendée", flag: "", rue: "Avenue Louis Viannet", pompier: "10", pompier2: "", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite - Forum social" },
+    { stand: "Pays Yonnais", flag: "", rue: "Avenue Louis Viannet", pompier: "10", pompier2: "", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite - Forum social" },
+    { stand: "FD Yvelines", flag: "", rue: "Avenue Louis Viannet", pompier: "10", pompier2: "", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite - Forum social" },
+    { stand: "JC Loire-Atlantique", flag: "", rue: "Avenue Louis Viannet", pompier: "10", pompier2: "", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite - Forum social" },
+    { stand: "Val d'Oise (bloc 1)", flag: "", rue: "Esplanade  Manouchian", pompier: "5", pompier2: "", zone: "Place agora", pedestrian: "Agora - forum social Zone NO" },
+    { stand: "Val d'Oise (bloc 2)", flag: "", rue: "Esplanade  Manouchian", pompier: "5", pompier2: "", zone: "Place agora", pedestrian: "Agora - forum social Zone NO" },
+    { stand: "Val d'Oise (bloc 3)", flag: "", rue: "Esplanade  Manouchian", pompier: "5", pompier2: "", zone: "Place agora", pedestrian: "Agora - forum social Zone NO" },
+    { stand: "Coopératives des Élus Communistes", flag: "", rue: "Esplanade  Manouchian", pompier: "5", pompier2: "", zone: "Place agora", pedestrian: "Agora - forum social Zone NO" },
+    { stand: "SPL Air", flag: "", rue: "Esplanade  Manouchian", pompier: "5", pompier2: "", zone: "Place agora", pedestrian: "Agora - forum social Zone NO" },
+    { stand: "ARS", flag: "", rue: "Esplanade  Manouchian", pompier: "5", pompier2: "", zone: "Place agora", pedestrian: "Agora - forum social Zone O" },
+    { stand: "FMF", flag: "", rue: "Esplanade  Manouchian", pompier: "5", pompier2: "", zone: "Place agora", pedestrian: "Agora - forum social Zone O" },
+    { stand: "Femmes Solidaires", flag: "", rue: "Rue Rosa Luxembourg", pompier: "11", pompier2: "4", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite -Agora zone NO" },
+    { stand: "Chorale populaire de Paris", flag: "", rue: "Rue Rosa Luxembourg", pompier: "11", pompier2: "4", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite -Agora zone NO" },
+    { stand: "La France Insoumise", flag: "X", rue: "Rue Rosa Luxembourg", pompier: "11", pompier2: "4", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite -Agora zone NO" },
+    { stand: "Livres en Luttes", flag: "", rue: "Rue Rosa Luxembourg", pompier: "11", pompier2: "4", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite -Agora zone NO" },
+    { stand: "Expo Humanité (FNSAC-CGT)", flag: "", rue: "Rue Rosa Luxembourg", pompier: "4", pompier2: "", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite -Agora zone SE" },
+    { stand: "Village des Médias Indépendants", flag: "", rue: "Rue Rosa Luxembourg", pompier: "4", pompier2: "", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite -Agora zone SE" },
+    { stand: "Global Chargeur / ACER", flag: "", rue: "Voie Pompiers", pompier: "4", pompier2: "", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite -Agora zone SE" },
+    { stand: "La Riposte", flag: "", rue: "Voie Pompiers", pompier: "4", pompier2: "", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite -Agora zone SE" },
+    { stand: "Attac", flag: "", rue: "Voie Pompiers", pompier: "4", pompier2: "", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite -Agora zone SE" },
+    { stand: "Marne", flag: "", rue: "Avenue Olympe de Gouges", pompier: "3", pompier2: "", zone: "Agora zone Ouest", pedestrian: "Plaine baker - Agora - Côté est" },
+    { stand: "Gers", flag: "", rue: "Avenue Olympe de Gouges", pompier: "3", pompier2: "", zone: "Agora zone Ouest", pedestrian: "Plaine baker - Agora - Côté est" },
+    { stand: "Occitanie", flag: "", rue: "Avenue Olympe de Gouges", pompier: "3", pompier2: "", zone: "Agora zone Ouest", pedestrian: "Plaine baker - Agora - Côté est" },
+    { stand: "Haute Garonne", flag: "", rue: "Avenue Olympe de Gouges", pompier: "4", pompier2: "", zone: "Agora zone Ouest", pedestrian: "Plaine baker - Agora - Côté est" },
+    { stand: "Aveyron", flag: "", rue: "Avenue Olympe de Gouges", pompier: "4", pompier2: "", zone: "Agora zone Ouest", pedestrian: "Plaine baker - Agora - Côté est" },
+    { stand: "Cuba Si France / SIPC", flag: "", rue: "Avenue Olympe de Gouges", pompier: "4", pompier2: "", zone: "Agora zone Ouest", pedestrian: "Plaine baker - Agora - Côté est" },
+    { stand: "Save", flag: "", rue: "Avenue Olympe de Gouges", pompier: "4", pompier2: "", zone: "Agora zone Ouest", pedestrian: "Plaine baker - Agora - Côté est" },
+    { stand: "Nous Toutes", flag: "", rue: "Avenue Olympe de Gouges", pompier: "4", pompier2: "", zone: "Agora zone Ouest", pedestrian: "Plaine baker - Agora - Côté est" },
+    { stand: "S2LH", flag: "", rue: "Avenue Olympe de Gouges", pompier: "4", pompier2: "", zone: "Agora zone Ouest", pedestrian: "Plaine baker - Agora - Côté est" },
+    { stand: "Gard", flag: "", rue: "Avenue Olympe de Gouges", pompier: "4", pompier2: "", zone: "Agora zone Ouest", pedestrian: "Plaine baker - Agora - Côté est" },
+    { stand: "Pyrénées-Orientales (66)", flag: "", rue: "Avenue Olympe de Gouges", pompier: "4", pompier2: "", zone: "Agora zone Ouest", pedestrian: "Plaine baker - Agora - Côté est" },
+    { stand: "Nova", flag: "", rue: "Avenue Olympe de Gouges", pompier: "4", pompier2: "", zone: "Agora zone Ouest", pedestrian: "Plaine baker - Agora - Côté est" },
+    { stand: "Snecma Corbeil-Villaroche", flag: "", rue: "Avenue Maurice et Josette Audin", pompier: "10", pompier2: "", zone: "Nina Simone zone ouest", pedestrian: "Nina Simone - Forum social" },
+    { stand: "Grigny", flag: "", rue: "Avenue Maurice et Josette Audin", pompier: "10", pompier2: "", zone: "Nina Simone zone ouest", pedestrian: "Nina Simone - Forum social" },
+    { stand: "Charente", flag: "", rue: "Avenue Maurice et Josette Audin", pompier: "10", pompier2: "", zone: "Nina Simone zone ouest", pedestrian: "Nina Simone - Forum social" },
+    { stand: "Val-d'Yerres Val-de-Seine", flag: "", rue: "Avenue Maurice et Josette Audin", pompier: "10", pompier2: "", zone: "Nina Simone zone ouest", pedestrian: "Nina Simone - Forum social" },
+    { stand: "Corbeil-Essonnes", flag: "", rue: "Avenue Maurice et Josette Audin", pompier: "10", pompier2: "", zone: "Nina Simone zone ouest", pedestrian: "Nina Simone - Forum social" },
+    { stand: "Défense de l'Hôpital", flag: "", rue: "Avenue Maurice et Josette Audin", pompier: "10", pompier2: "", zone: "Nina Simone zone ouest", pedestrian: "Nina Simone - Forum social" },
+    { stand: "Meurthe-et-Moselle", flag: "", rue: "Avenue Julien L'Auprêtre", pompier: "9", pompier2: "", zone: "Nina Simone zone Est", pedestrian: "Nina Simone - Village du monde zone Ouest" },
+    { stand: "Éclair", flag: "", rue: "Avenue Julien L'Auprêtre", pompier: "9", pompier2: "", zone: "Nina Simone zone Est", pedestrian: "Nina Simone - Village du monde zone Ouest" },
+    { stand: "Moselle", flag: "", rue: "Avenue Julien L'Auprêtre", pompier: "9", pompier2: "", zone: "Nina Simone zone Est", pedestrian: "Nina Simone - Village du monde zone Ouest" },
+    { stand: "FD 92", flag: "", rue: "Avenue Julien L'Auprêtre", pompier: "9", pompier2: "", zone: "Nina Simone zone Est", pedestrian: "Nina Simone - Village du monde zone Ouest" },
+    { stand: "Malakoff", flag: "", rue: "Avenue Julien L'Auprêtre", pompier: "9", pompier2: "", zone: "Nina Simone zone Est", pedestrian: "Nina Simone - Village du monde zone Ouest" },
+    { stand: "Nanterre", flag: "", rue: "Avenue Julien L'Auprêtre", pompier: "9", pompier2: "", zone: "Nina Simone zone Est", pedestrian: "Nina Simone - Village du monde zone Ouest" },
+    { stand: "MJCF Hauts-de-Seine", flag: "", rue: "Avenue Julien L'Auprêtre", pompier: "9", pompier2: "", zone: "Nina Simone zone Est", pedestrian: "Nina Simone - Village du monde zone Ouest" },
+    { stand: "Scène 92", flag: "", rue: "Avenue Julien L'Auprêtre", pompier: "9", pompier2: "", zone: "Nina Simone zone Est", pedestrian: "Nina Simone - Village du monde zone Ouest" },
+    { stand: "Gennevilliers", flag: "", rue: "Avenue Julien L'Auprêtre", pompier: "9", pompier2: "", zone: "Nina Simone zone Est", pedestrian: "Nina Simone - Village du monde zone Ouest" },
+    { stand: "Antony", flag: "", rue: "Avenue Julien L'Auprêtre", pompier: "9", pompier2: "", zone: "Nina Simone zone Est", pedestrian: "Nina Simone - Village du monde zone Ouest" },
+    { stand: "Asnières", flag: "", rue: "Avenue Julien L'Auprêtre", pompier: "9", pompier2: "", zone: "Nina Simone zone Est", pedestrian: "Nina Simone - Village du monde zone Ouest" },
+    { stand: "Printemps des Corbeil", flag: "", rue: "Avenue Maurice et Josette Audin", pompier: "10", pompier2: "", zone: "Nina Simone zone ouest", pedestrian: "Nina Simone - Forum social" },
+    { stand: "Val-de-Seine Ris-Orangis Draveil", flag: "", rue: "Avenue Maurice et Josette Audin", pompier: "10", pompier2: "", zone: "Nina Simone zone ouest", pedestrian: "Nina Simone - Forum social" },
+    { stand: "PCF Sud Essonne", flag: "", rue: "Avenue Maurice et Josette Audin", pompier: "10", pompier2: "", zone: "Nina Simone zone ouest", pedestrian: "Nina Simone - Forum social" },
+    { stand: "Morsang", flag: "", rue: "Avenue Maurice et Josette Audin", pompier: "10", pompier2: "", zone: "Nina Simone zone ouest", pedestrian: "Nina Simone - Forum social" },
+    { stand: "Nord Essonne", flag: "", rue: "Avenue Maurice et Josette Audin", pompier: "10", pompier2: "", zone: "Nina Simone zone ouest", pedestrian: "Nina Simone - Forum social" },
+    { stand: "Hurepoix", flag: "", rue: "Avenue Maurice et Josette Audin", pompier: "10", pompier2: "", zone: "Nina Simone zone ouest", pedestrian: "Nina Simone - Forum social" },
+    { stand: "Yvette / CEA", flag: "", rue: "Avenue Maurice et Josette Audin", pompier: "10", pompier2: "", zone: "Nina Simone zone ouest", pedestrian: "Nina Simone - Forum social" },
+    { stand: "Aube", flag: "", rue: "Avenue Elsa Triolet & Louis Aragon", pompier: "9", pompier2: "6", zone: "Place colonel Fabien - Nina Simone", pedestrian: "Place colonel Fabien - Nina Simone Zone Nord" },
+    { stand: "Vosges", flag: "", rue: "Avenue Elsa Triolet & Louis Aragon", pompier: "9", pompier2: "6", zone: "Place colonel Fabien - Nina Simone", pedestrian: "Place colonel Fabien - Nina Simone Zone Nord" },
+    { stand: "Lutte Ouvrière", flag: "", rue: "Avenue Elsa Triolet & Louis Aragon", pompier: "9", pompier2: "6", zone: "Place colonel Fabien - Nina Simone", pedestrian: "Place colonel Fabien - Nina Simone Zone Nord" },
+    { stand: "Libre Comme l'Art", flag: "", rue: "Esplanade  Manouchian", pompier: "5", pompier2: "", zone: "Place agora", pedestrian: "Agora - forum social Zone NE" },
+    { stand: "MJCF", flag: "", rue: "Avenue Elsa Triolet & Louis Aragon", pompier: "9", pompier2: "6", zone: "Place colonel Fabien - Nina Simone", pedestrian: "Place colonel Fabien - Nina Simone" },
+    { stand: "Choisy-le-Roi / Villeneuve-Saint-Georges", flag: "", rue: "Avenue Elsa Triolet & Louis Aragon", pompier: "9", pompier2: "6", zone: "Place colonel Fabien - Nina Simone", pedestrian: "Place colonel Fabien - Nina Simone" },
+    { stand: "Ivry", flag: "", rue: "Avenue Elsa Triolet & Louis Aragon", pompier: "9", pompier2: "6", zone: "Place colonel Fabien - Nina Simone", pedestrian: "Place colonel Fabien - Nina Simone" },
+    { stand: "Oxfam", flag: "", rue: "Avenue Elsa Triolet & Louis Aragon", pompier: "9", pompier2: "6", zone: "Place colonel Fabien - Nina Simone", pedestrian: "Place colonel Fabien - Nina Simone" },
+    { stand: "Fontenay", flag: "", rue: "Avenue Elsa Triolet & Louis Aragon", pompier: "9", pompier2: "6", zone: "Place colonel Fabien - Nina Simone", pedestrian: "Place colonel Fabien - Nina Simone" },
+    { stand: "Bonneuil", flag: "", rue: "Avenue Elsa Triolet & Louis Aragon", pompier: "9", pompier2: "6", zone: "Place colonel Fabien - Nina Simone", pedestrian: "Place colonel Fabien - Nina Simone Zone sud" },
+    { stand: "Chevilly / Rungis", flag: "", rue: "Avenue Elsa Triolet & Louis Aragon", pompier: "6", pompier2: "", zone: "Place colonel Fabien", pedestrian: "Zone nord" },
+    { stand: "Finistère", flag: "", rue: "Avenue Elsa Triolet & Louis Aragon", pompier: "6", pompier2: "", zone: "Place colonel Fabien", pedestrian: "Zone nord" },
+    { stand: "Fresnes", flag: "", rue: "Avenue Elsa Triolet & Louis Aragon", pompier: "6", pompier2: "", zone: "Place colonel Fabien", pedestrian: "Zone nord" },
+    { stand: "Valenton-Orly", flag: "", rue: "Avenue Elsa Triolet & Louis Aragon", pompier: "9", pompier2: "6", zone: "Place colonel Fabien - Nina Simone", pedestrian: "Place colonel Fabien - Nina Simone Zone sud" },
+    { stand: "Philistin Palestine", flag: "", rue: "Rue Jina Mahsa Amini", pompier: "6", pompier2: "", zone: "Place colonel Fabien - Allée NE", pedestrian: "Place colonel Fabien - Village du monde" },
+    { stand: "KCP", flag: "", rue: "Rue Jina Mahsa Amini", pompier: "6", pompier2: "", zone: "Place colonel Fabien - Allée NE", pedestrian: "Place colonel Fabien - Village du monde" },
+    { stand: "Cuba Coop", flag: "", rue: "Rue Jina Mahsa Amini", pompier: "6", pompier2: "", zone: "Place colonel Fabien - Allée NE", pedestrian: "Place colonel Fabien - Village du monde" },
+    { stand: "AMDH", flag: "", rue: "Rue Jina Mahsa Amini", pompier: "6", pompier2: "", zone: "Place colonel Fabien - Allée NE", pedestrian: "Place colonel Fabien - Village du monde" },
+    { stand: "Mouvement de la Paix", flag: "", rue: "Rue Jina Mahsa Amini", pompier: "6", pompier2: "", zone: "Place colonel Fabien - Allée NE", pedestrian: "Place colonel Fabien - Village du monde" },
+    { stand: "PC Mondo", flag: "", rue: "Rue Jina Mahsa Amini", pompier: "6", pompier2: "", zone: "Place colonel Fabien - Allée NE", pedestrian: "Place colonel Fabien - Village du monde" },
+    { stand: "PG Iran", flag: "", rue: "Rue Jina Mahsa Amini", pompier: "6", pompier2: "", zone: "Place colonel Fabien - Allée NE", pedestrian: "Place colonel Fabien - Village du monde" },
+    { stand: "CDK-F", flag: "", rue: "Rue Jina Mahsa Amini", pompier: "6", pompier2: "", zone: "Place colonel Fabien - Allée NE", pedestrian: "Place colonel Fabien - Village du monde" },
+    { stand: "France Kurdistan", flag: "", rue: "Rue Jina Mahsa Amini", pompier: "6", pompier2: "", zone: "Place colonel Fabien - Allée NE", pedestrian: "Place colonel Fabien - Village du monde" },
+    { stand: "UJFP Union juifs", flag: "", rue: "Rue Jina Mahsa Amini", pompier: "6", pompier2: "", zone: "Place colonel Fabien - Allée NE", pedestrian: "Place colonel Fabien - Village du monde" },
+    { stand: "BDS orga de Boycott", flag: "", rue: "Rue Jina Mahsa Amini", pompier: "6", pompier2: "", zone: "Place colonel Fabien - Allée NE", pedestrian: "Place colonel Fabien - Village du monde" },
+    { stand: "Pafha", flag: "", rue: "Rue Jina Mahsa Amini", pompier: "6", pompier2: "", zone: "Place colonel Fabien - Allée NE", pedestrian: "Place colonel Fabien - Village du monde" },
+    { stand: "Espace Numérique", flag: "", rue: "Esplanade  Manouchian", pompier: "5", pompier2: "", zone: "Place agora", pedestrian: "Agora - forum social Zone NE" },
+    { stand: "Village du livre", flag: "", rue: "Esplanade  Manouchian", pompier: "5", pompier2: "", zone: "Place agora", pedestrian: "Agora - forum social Zone NE" },
+    { stand: "AFPS", flag: "", rue: "Place de l'État de Palestine", pompier: "9", pompier2: "", zone: "Place Palestine", pedestrian: "Place colonel Fabien - Village du monde zone Nord" },
+    { stand: "Life ONG Humanitaire", flag: "", rue: "Place de l'État de Palestine", pompier: "9", pompier2: "", zone: "Place Palestine", pedestrian: "Place colonel Fabien - Village du monde zone Nord" },
+    { stand: "Champs-sur-Marne", flag: "", rue: "Rue Jean-Marie Tjibaou", pompier: "7", pompier2: "", zone: "Grande scène zonenord  est", pedestrian: "Grande scène - Village du monde" },
+    { stand: "FD 77", flag: "", rue: "Rue Jean-Marie Tjibaou", pompier: "7", pompier2: "", zone: "Grande scène zonenord  est", pedestrian: "Grande scène - Village du monde" },
+    { stand: "Mitry", flag: "", rue: "Rue Jean-Marie Tjibaou", pompier: "7", pompier2: "6", zone: "Grande scène zone est", pedestrian: "Grande scène zone est" },
+    { stand: "Roissy-en-Brie", flag: "", rue: "Rue Jean-Marie Tjibaou", pompier: "7", pompier2: "6", zone: "Grande scène zone est", pedestrian: "Grande scène zone est" },
+    { stand: "Gentilly", flag: "", rue: "Rue Jean-Marie Tjibaou", pompier: "7", pompier2: "6", zone: "Grande scène zone est", pedestrian: "Grande scène zone est" },
+    { stand: "FD Nièvre", flag: "", rue: "Rue Jean-Marie Tjibaou", pompier: "7", pompier2: "6", zone: "Grande scène zone est", pedestrian: "Grande scène zone est" },
+    { stand: "Vitry", flag: "", rue: "Rue Jean-Marie Tjibaou / Plaine Mary Anning", pompier: "6", pompier2: "", zone: "Grande scène nord ouest", pedestrian: "Grande scène nord ouest" },
+    { stand: "Villejuif", flag: "", rue: "Rue Jean-Marie Tjibaou / Plaine Mary Anning", pompier: "6", pompier2: "", zone: "Grande scène nord ouest", pedestrian: "Grande scène nord ouest" },
+    { stand: "Champigny", flag: "", rue: "Rue Jean-Marie Tjibaou / Plaine Mary Anning", pompier: "6", pompier2: "", zone: "Grande scène nord ouest", pedestrian: "Grande scène nord ouest" },
+    { stand: "MJCF Grande scène", flag: "", rue: "Rue Jean-Marie Tjibaou / Plaine Mary Anning", pompier: "6", pompier2: "", zone: "Grande scène nord ouest", pedestrian: "Grande scène nord ouest" },
+    { stand: "La Courneuve", flag: "", rue: "Rue Jean-Marie Tjibaou / Plaine Mary Anning", pompier: "6", pompier2: "", zone: "Grande scène nord ouest", pedestrian: "Grande scène nord ouest" },
+    { stand: "Morbihan", flag: "", rue: "Avenue Gisèle Halimi", pompier: "6", pompier2: "", zone: "Zone ouest grande scène", pedestrian: "Place Colonel Fabien - Grande sccène" },
+    { stand: "Paris 19", flag: "", rue: "Avenue Gisèle Halimi", pompier: "6", pompier2: "", zone: "Zone ouest grande scène", pedestrian: "Place Colonel Fabien - Grande sccène" },
+    { stand: "Paris 13", flag: "", rue: "Avenue Gisèle Halimi", pompier: "6", pompier2: "", zone: "Zone ouest grande scène", pedestrian: "Place Colonel Fabien - Grande sccène" },
+    { stand: "Paris 16", flag: "", rue: "Avenue Gisèle Halimi", pompier: "6", pompier2: "", zone: "Zone ouest grande scène", pedestrian: "Place Colonel Fabien - Grande sccène" },
+    { stand: "JC Paris", flag: "", rue: "Avenue Gisèle Halimi", pompier: "6", pompier2: "", zone: "Zone ouest grande scène", pedestrian: "Place Colonel Fabien - Grande sccène" },
+    { stand: "Paris 18", flag: "", rue: "Avenue Gisèle Halimi", pompier: "6", pompier2: "", zone: "Zone ouest grande scène", pedestrian: "Place Colonel Fabien - Grande sccène" },
+    { stand: "FD Paris", flag: "", rue: "Avenue Gisèle Halimi", pompier: "6", pompier2: "", zone: "Zone ouest grande scène", pedestrian: "Place Colonel Fabien - Grande sccène" },
+    { stand: "Paris 20", flag: "", rue: "Avenue Gisèle Halimi", pompier: "6", pompier2: "", zone: "Zone ouest grande scène", pedestrian: "Place Colonel Fabien - Grande sccène" },
+    { stand: "RATP", flag: "", rue: "Avenue Gisèle Halimi", pompier: "6", pompier2: "", zone: "Zone ouest grande scène", pedestrian: "Place Colonel Fabien - Grande sccène" },
+    { stand: "Paris 12 Cheminots", flag: "", rue: "Avenue Gisèle Halimi", pompier: "6", pompier2: "", zone: "Zone ouest grande scène", pedestrian: "Place Colonel Fabien - Grande sccène" },
+    { stand: "Île-et-Vilaine (35)", flag: "", rue: "Avenue Gisèle Halimi", pompier: "6", pompier2: "", zone: "Zone ouest grande scène", pedestrian: "Place Colonel Fabien - Grande sccène" },
+    { stand: "Bouche du Rhône", flag: "", rue: "Rue du Colonel Fabien", pompier: "6", pompier2: "", zone: "Place colonel Fabien", pedestrian: "Agora - Place colonel Fabien zone est" },
+    { stand: "FD Côtes-d'Armor (22)", flag: "", rue: "Rue du Colonel Fabien", pompier: "6", pompier2: "", zone: "Place colonel Fabien", pedestrian: "Agora - Place colonel Fabien zone est" },
+    { stand: "Fest Noz", flag: "", rue: "Rue du Colonel Fabien", pompier: "6", pompier2: "", zone: "Place colonel Fabien", pedestrian: "Agora - Place colonel Fabien zone est" },
+    { stand: "CN", flag: "", rue: "Rue du Colonel Fabien", pompier: "6", pompier2: "", zone: "Place colonel Fabien", pedestrian: "Agora - Place colonel Fabien zone est" },
+    { stand: "PGE", flag: "", rue: "Rue du Colonel Fabien", pompier: "6", pompier2: "", zone: "Place colonel Fabien", pedestrian: "Agora - Place colonel Fabien zone est" },
+    { stand: "OLP", flag: "", rue: "Rue du Colonel Fabien", pompier: "6", pompier2: "", zone: "Place colonel Fabien", pedestrian: "Agora - Place colonel Fabien zone est" },
+    { stand: "Briare", flag: "", rue: "Avenue Roland Leroy", pompier: "6", pompier2: "", zone: "", pedestrian: "" },
+    { stand: "Loiret", flag: "", rue: "Avenue Roland Leroy", pompier: "5", pompier2: "", zone: "Agora rue est", pedestrian: "Agora - place colonel Fabien" },
+    { stand: "Indre-et-Loire", flag: "", rue: "Avenue Roland Leroy", pompier: "5", pompier2: "", zone: "Agora rue est", pedestrian: "Agora - place colonel Fabien" },
+    { stand: "FD Cher", flag: "", rue: "Avenue Roland Leroy", pompier: "5", pompier2: "", zone: "Agora rue est", pedestrian: "Agora - place colonel Fabien" },
+    { stand: "CGT Commerce", flag: "", rue: "Avenue Roland Leroy", pompier: "5", pompier2: "", zone: "Agora rue est", pedestrian: "Agora - place colonel Fabien" },
+    { stand: "La Poulletterie", flag: "", rue: "Avenue Roland Leroy", pompier: "5", pompier2: "", zone: "Agora rue est", pedestrian: "Agora - place colonel Fabien" },
+    { stand: "Printemps Écologique", flag: "", rue: "Avenue Roland Leroy", pompier: "9", pompier2: "6", zone: "Place colonel Fabien - Nina Simone", pedestrian: "Place colonel Fabien - Nina Simone" },
+    { stand: "Eure", flag: "", rue: "Avenue Roland Leroy", pompier: "5", pompier2: "", zone: "Agora rue est", pedestrian: "Agora - place colonel Fabien" },
+    { stand: "Calvados", flag: "", rue: "Avenue Roland Leroy", pompier: "5", pompier2: "", zone: "Agora rue est", pedestrian: "Agora - place colonel Fabien" },
+    { stand: "Manche", flag: "", rue: "Avenue Roland Leroy", pompier: "5", pompier2: "", zone: "Agora rue est", pedestrian: "Agora - place colonel Fabien" },
+    { stand: "FD Seine-Maritime", flag: "", rue: "Avenue Roland Leroy", pompier: "5", pompier2: "", zone: "Agora rue est", pedestrian: "Agora - place colonel Fabien" },
+    { stand: "Dieppe", flag: "", rue: "Avenue Roland Leroy", pompier: "5", pompier2: "", zone: "Agora rue est", pedestrian: "Agora - place colonel Fabien" },
+    { stand: "Elbeuf", flag: "", rue: "Avenue Roland Leroy", pompier: "5", pompier2: "", zone: "Agora rue est", pedestrian: "Agora - place colonel Fabien" },
+    { stand: "Le Havre", flag: "", rue: "Avenue Roland Leroy", pompier: "5", pompier2: "", zone: "Agora rue est", pedestrian: "Agora - place colonel Fabien" },
+    { stand: "S2LNH", flag: "", rue: "Avenue Roland Leroy", pompier: "5", pompier2: "", zone: "Agora rue est", pedestrian: "Agora - place colonel Fabien" },
+    { stand: "Comité E H Diara", flag: "", rue: "Plaine Emmeline Pankhurst", pompier: "2", pompier2: "", zone: "Plaine baker", pedestrian: "Plaine baker - Fond Plaine" },
+    { stand: "L après", flag: "", rue: "Avenue Frida Kahlo", pompier: "2", pompier2: "", zone: "Place Jack Ralite - Plaine Baker", pedestrian: "Place Jack Ralite - Plaine Baker" },
+    { stand: "Lacimade", flag: "", rue: "Avenue Pierre Bourdieu", pompier: "2", pompier2: "", zone: "Plaine Baker Zone Est", pedestrian: "Plaine baker - Agora - Côté Ouest" },
+    { stand: "1001 territoires", flag: "", rue: "Avenue Pierre Bourdieu", pompier: "3", pompier2: "", zone: "Plaine Baker Zone Est", pedestrian: "Plaine baker - Agora - Côté Ouest" },
+    { stand: "Fondation des femmes", flag: "", rue: "Avenue Olympe de Gouges", pompier: "4", pompier2: "", zone: "Agora zone Ouest", pedestrian: "Plaine baker - Agora - Côté est" },
+    { stand: "Tarn et garonne", flag: "", rue: "Avenue Olympe de Gouges", pompier: "4", pompier2: "", zone: "Agora zone Ouest", pedestrian: "Plaine baker - Agora - Côté est" },
+    { stand: "Lozere", flag: "", rue: "Avenue Olympe de Gouges", pompier: "4", pompier2: "", zone: "Agora zone Ouest", pedestrian: "Plaine baker - Agora - Côté est" },
+    { stand: "Pas de calais", flag: "", rue: "Avenue Olympe de Gouges", pompier: "4", pompier2: "", zone: "Agora zone Ouest", pedestrian: "Plaine baker - Agora - Côté est" },
+    { stand: "Nord", flag: "", rue: "Avenue Olympe de Gouges", pompier: "4", pompier2: "", zone: "Agora zone Ouest", pedestrian: "Plaine baker - Agora - Côté est" },
+    { stand: "Freres des hommes", flag: "", rue: "Avenue Olympe de Gouges", pompier: "4", pompier2: "", zone: "Agora zone Ouest", pedestrian: "Plaine baker - Agora - Côté est" },
+    { stand: "fnsac cgt", flag: "", rue: "Rue Rosa Luxembourg", pompier: "4", pompier2: "", zone: "Jack Ralite Zone Est", pedestrian: "Jacques ralite -Agora zone SE" },
+    { stand: "PCF bretigny", flag: "", rue: "Avenue Maurice et Josette Audin", pompier: "10", pompier2: "", zone: "Nina Simone zone ouest", pedestrian: "Nina Simone - Forum social" },
+    { stand: "SIF", flag: "", rue: "Avenue Julien L'Auprêtre", pompier: "9", pompier2: "", zone: "Nina Simone zone Est", pedestrian: "Nina Simone - Village du monde zone Ouest" },
+    { stand: "Paris 15", flag: "", rue: "Avenue Julien L'Auprêtre", pompier: "9", pompier2: "", zone: "Nina Simone zone Est", pedestrian: "Nina Simone - Village du monde zone Ouest" },
+    { stand: "Montrouge", flag: "", rue: "Rue Leymah Gbowee", pompier: "9", pompier2: "", zone: "Village du Monde zone NO", pedestrian: "Nina Simone - Village du monde zone O" },
+    { stand: "Suresnes-Saint-Cloud", flag: "", rue: "Rue Leymah Gbowee", pompier: "9", pompier2: "", zone: "Village du Monde zone NO", pedestrian: "Nina Simone - Village du monde zone O" },
+    { stand: "Pionnier", flag: "", rue: "Rue Leymah Gbowee", pompier: "9", pompier2: "", zone: "Village du Monde zone NO", pedestrian: "Nina Simone - Village du monde zone  Nord Est" },
+    { stand: "La Grosse Boîte", flag: "", rue: "Rue Leymah Gbowee", pompier: "9", pompier2: "", zone: "Village du Monde zone NO", pedestrian: "Nina Simone - Village du monde zone  Nord Est" },
+    { stand: "Contre Courant Spectacle vivant 31", flag: "", rue: "Rue Leymah Gbowee", pompier: "9", pompier2: "", zone: "Village du Monde zone NO", pedestrian: "Nina Simone - Village du monde zone  Nord Est" },
+    { stand: "Cuba France", flag: "", rue: "Rue Leymah Gbowee", pompier: "9", pompier2: "", zone: "Village du Monde zone NO", pedestrian: "Nina Simone - Village du monde zone  Nord Est" },
+    { stand: "ASFA Algérie", flag: "", rue: "Rue Leymah Gbowee", pompier: "9", pompier2: "", zone: "Village du Monde zone NO", pedestrian: "Nina Simone - Village du monde zone  Nord Est" },
+    { stand: "2 Rives Tunisie", flag: "", rue: "Rue Leymah Gbowee", pompier: "9", pompier2: "", zone: "Village du Monde zone NO", pedestrian: "Nina Simone - Village du monde zone  Nord Est" },
+    { stand: "Front Populaire en Turquie", flag: "", rue: "Rue Leymah Gbowee", pompier: "9", pompier2: "", zone: "Village du Monde zone NO", pedestrian: "Nina Simone - Village du monde zone  Nord Est" },
+    { stand: "MRAP", flag: "", rue: "Rue Leymah Gbowee", pompier: "9", pompier2: "", zone: "Village du Monde zone NO", pedestrian: "Nina Simone - Village du monde zone  Nord Est" },
+    { stand: "SGLCE LIVRE CGT", flag: "", rue: "Rue Leymah Gbowee", pompier: "9", pompier2: "", zone: "Village du Monde zone NO", pedestrian: "Nina Simone - Village du monde zone  Nord Est" },
+    { stand: "Secours Populaire Français", flag: "", rue: "Rue Marwan Barghouti", pompier: "9", pompier2: "", zone: "Place Palestine zone O", pedestrian: "Place Palestine- Scène 92" },
+    { stand: "Boulogne-Billancourt", flag: "", rue: "Rue Marwan Barghouti", pompier: "9", pompier2: "", zone: "Place Palestine zone O", pedestrian: "Place Palestine- Scène 92" },
+    { stand: "Avente", flag: "", rue: "Rue Alvaro Cunhel", pompier: "9", pompier2: "7 BIS", zone: "Place Palestine zone NE", pedestrian: "Place Palestine- Scène 92" },
+    { stand: "FAL", flag: "", rue: "Rue Che Guevara", pompier: "9", pompier2: "7 BIS", zone: "Place Palestine zone NE", pedestrian: "Place Palestine- Scène Village du monde" },
+    { stand: "APDH", flag: "", rue: "Rue Alvaro Cunhel", pompier: "9", pompier2: "7 BIS", zone: "Place Palestine zone NE", pedestrian: "Place Palestine- Scène 92" },
+    { stand: "Sinnamary Guyane", flag: "", rue: "Rue Alvaro Cunhal", pompier: "9", pompier2: "7 BIS", zone: "Place Palestine zone NE", pedestrian: "Place Palestine- Scène 92" },
+    { stand: "Sinn Féin", flag: "", rue: "Rue Alvaro Cunhal", pompier: "9", pompier2: "7 BIS", zone: "Place Palestine zone NE", pedestrian: "Place Palestine- Scène 92" },
+    { stand: "Soudanais", flag: "", rue: "Rue Alvaro Cunhal", pompier: "9", pompier2: "7 BIS", zone: "Place Palestine zone NE", pedestrian: "Place Palestine- Scène 92" },
+    { stand: "Nicaragua", flag: "", rue: "Rue Alvaro Cunhal", pompier: "9", pompier2: "7 BIS", zone: "Place Palestine zone NE", pedestrian: "Place Palestine- Scène 92" },
+    { stand: "PC Irakien", flag: "", rue: "Rue Alvaro Cunhal", pompier: "9", pompier2: "7 BIS", zone: "Place Palestine zone NE", pedestrian: "Place Palestine- Scène Village du monde" },
+    { stand: "KKP", flag: "", rue: "Rue Che Guevara", pompier: "9", pompier2: "7 BIS", zone: "Place Palestine zone NE", pedestrian: "Place Palestine- Scène Village du monde" },
+    { stand: "ACSF", flag: "", rue: "Rue Che Guevara", pompier: "9", pompier2: "7 BIS", zone: "Place Palestine zone NE", pedestrian: "Place Palestine- Scène Village du monde" },
+    { stand: "SORA Orphelinats Mali", flag: "", rue: "Rue Che Guevara", pompier: "9", pompier2: "7 BIS", zone: "Place Palestine zone NE", pedestrian: "Place Palestine- Scène Village du monde" },
+    { stand: "Parti Tudeh d'Iran", flag: "", rue: "Rue Che Guevara", pompier: "", pompier2: "", zone: "", pedestrian: "" },
+    { stand: "Iranian Fadaian", flag: "", rue: "Rue Che Guevara", pompier: "9", pompier2: "7 BIS", zone: "Place Palestine zone NE", pedestrian: "Place Palestine- Scène Village du monde" },
+    { stand: "RDA Rassemblement démocratique Afrique", flag: "", rue: "Rue Che Guevara", pompier: "9", pompier2: "7 BIS", zone: "Place Palestine zone NE", pedestrian: "Place Palestine- Scène Village du monde" },
+    { stand: "ACCA", flag: "", rue: "Rue Che Guevara", pompier: "9", pompier2: "7 BIS", zone: "Place Palestine zone NE", pedestrian: "Place Palestine- Scène Village du monde" },
+    { stand: "ARDVKF usagers transports idf", flag: "", rue: "Rue Che Guevara", pompier: "9", pompier2: "7 BIS", zone: "Place Palestine zone NE", pedestrian: "Place Palestine- Scène Village du monde" },
+    { stand: "Connolly Communistes irlandais", flag: "", rue: "Rue Marguerite Sanger", pompier: "7 BIS", pompier2: "", zone: "Villade du monde Sud Est", pedestrian: "Grande scène - Village du Monde zone NE" },
+    { stand: "Zaama Faso bénévolat culturel", flag: "", rue: "Rue Che Guevara", pompier: "9", pompier2: "7 BIS", zone: "Place Palestine zone NE", pedestrian: "Place Palestine- Scène Village du monde" },
+    { stand: "Xam-Xamle", flag: "", rue: "Rue Marguerite Sanger", pompier: "7 BIS", pompier2: "", zone: "Villade du monde Sud Est", pedestrian: "Grande scène - Village du Monde zone NE" },
+    { stand: "SOS  méditerranée", flag: "", rue: "Rue Marguerite Sanger", pompier: "7 BIS", pompier2: "", zone: "Villade du monde Sud Est", pedestrian: "Grande scène - Village du Monde zone NE" },
+    { stand: "Journal PC Guadeloupe", flag: "", rue: "Rue Marguerite Sanger", pompier: "7 BIS", pompier2: "", zone: "Villade du monde Sud Est", pedestrian: "Grande scène - Village du Monde zone NE" },
+    { stand: "Survie Contre néo colonialisme", flag: "", rue: "Rue Marguerite Sanger", pompier: "7 BIS", pompier2: "", zone: "Villade du monde Sud Est", pedestrian: "Grande scène - Village du Monde zone NE" },
+    { stand: "Parti des Travailleurs", flag: "", rue: "Rue Marguerite Sanger", pompier: "7 BIS", pompier2: "", zone: "Villade du monde Sud Est", pedestrian: "Grande scène - Village du Monde zone NE" },
+    { stand: "Annidaa Académie islamique", flag: "", rue: "Rue Nelson Mandela", pompier: "9", pompier2: "", zone: "Place Palestine zone NE", pedestrian: "Place Palestine- Scène 92" },
+    { stand: "Madagascar", flag: "", rue: "Rue Nelson Mandela", pompier: "7 BIS", pompier2: "", zone: "Villade du monde Sud Est", pedestrian: "Place Palestine - Village du Monde zone E" },
+    { stand: "Rifondazione Comunista Italie", flag: "", rue: "Rue Nelson Mandela", pompier: "7 BIS", pompier2: "", zone: "Villade du monde Sud Est", pedestrian: "Place Palestine - Village du Monde zone E" },
+    { stand: "Mésopotamie", flag: "", rue: "Rue Nelson Mandela", pompier: "7 BIS", pompier2: "", zone: "Villade du monde Sud Est", pedestrian: "Place Palestine - Village du Monde zone E" },
+    { stand: "Asso Sahraouis France", flag: "", rue: "Rue Nelson Mandela", pompier: "7 BIS", pompier2: "", zone: "Villade du monde Sud Est", pedestrian: "Place Palestine - Village du Monde zone E" },
+    { stand: "ACTIT", flag: "", rue: "Rue JM Tjibaou", pompier: "7 BIS", pompier2: "", zone: "Villade du monde Sud Est", pedestrian: "Grande scène - Village du Monde zone SE" },
+    { stand: "USTKE", flag: "", rue: "Rue JM Tjibaou", pompier: "7 BIS", pompier2: "", zone: "Villade du monde Sud Est", pedestrian: "Grande scène - Village du Monde zone SE" },
+    { stand: "Hébron", flag: "", rue: "Rue Nelson Mandela", pompier: "7 BIS", pompier2: "", zone: "Place Palestine", pedestrian: "Place Palestine - Village du Monde zone SE" },
+    { stand: "MST Brésil", flag: "", rue: "Rue Nelson Mandela", pompier: "7 BIS", pompier2: "", zone: "Place Palestine", pedestrian: "Place Palestine - Village du Monde zone SE" },
+    { stand: "Palestine", flag: "", rue: "Rue Nelson Mandela", pompier: "7 BIS", pompier2: "", zone: "Place Palestine", pedestrian: "Place Palestine - Village du Monde zone SE" },
+    { stand: "Le Rif", flag: "", rue: "Rue Mumia Abu-Jamal", pompier: "7 BIS", pompier2: "", zone: "Place Allende EST", pedestrian: "Place Palestine - Village du Monde zone SE" },
+    { stand: "PC Chilien", flag: "", rue: "Rue Nelson Mandela", pompier: "7 BIS", pompier2: "", zone: "Place Palestine", pedestrian: "Place Palestine - Village du Monde zone SE" },
+    { stand: "FGB (Maroc)", flag: "", rue: "Rue Mumia Abu-Jamal", pompier: "7 BIS", pompier2: "", zone: "Place Allende EST", pedestrian: "Place Palestine - Village du Monde zone SE" },
+    { stand: "FUAF", flag: "", rue: "Rue Mumia Abu-Jamal", pompier: "7 BIS", pompier2: "", zone: "Place Allende EST", pedestrian: "Place Palestine - Village du Monde zone SE" },
+    { stand: "Indonésie", flag: "", rue: "Rue Mumia Abu-Jamal", pompier: "7 BIS", pompier2: "", zone: "Place Allende EST", pedestrian: "Place Palestine - Village du Monde zone SE" },
+    { stand: "Young Struggle jeunes socialistes inter", flag: "", rue: "Rue Mumia Abu-Jamal", pompier: "7 BIS", pompier2: "", zone: "Place Allende EST", pedestrian: "Place Palestine - Village du Monde zone SE" },
+    { stand: "Médecins du Monde", flag: "", rue: "Rue Mumia Abu-Jamal", pompier: "7 BIS", pompier2: "", zone: "Place Allende EST", pedestrian: "Place Palestine - Village du Monde zone SE" },
+    { stand: "Libérons Mumia", flag: "", rue: "Rue Mumia Abu-Jamal", pompier: "7 BIS", pompier2: "", zone: "Place Allende EST", pedestrian: "Place Palestine - Village du Monde zone SE" },
+    { stand: "Tran To Nga Vietnam comité contre pétrochimie", flag: "", rue: "Rue Mumia Abu-Jamal", pompier: "7 BIS", pompier2: "", zone: "Place Allende EST", pedestrian: "Place Palestine - Village du Monde zone SE" },
+    { stand: "PCM Martinique", flag: "", rue: "Rue Marguerite Sanger", pompier: "7 BIS", pompier2: "", zone: "Villade du monde Sud Est", pedestrian: "Grande scène - Village du Monde zone NE" },
+    { stand: "Nhân Dan Vietnam", flag: "", rue: "Rue Marguerite Sanger", pompier: "7 BIS", pompier2: "", zone: "Villade du monde Sud Est", pedestrian: "Grande scène - Village du Monde zone NE" },
+    { stand: "Médecins Sans Frontières", flag: "", rue: "Rue Marguerite Sanger", pompier: "7 BIS", pompier2: "", zone: "Villade du monde Sud Est", pedestrian: "Grande scène - Village du Monde zone NE" },
+    { stand: "2ATF", flag: "", rue: "Rue Marguerite Sanger", pompier: "7 BIS", pompier2: "", zone: "Villade du monde Sud Est", pedestrian: "Grande scène - Village du Monde zone NE" },
+    { stand: "Paxason Organe presse laos", flag: "", rue: "Rue Marguerite Sanger", pompier: "7 BIS", pompier2: "", zone: "Villade du monde Sud Est", pedestrian: "Grande scène - Village du Monde zone NE" },
+    { stand: "Diamant Afrique", flag: "", rue: "Rue Mumia Abu-Jamal", pompier: "7 BIS", pompier2: "", zone: "Place Allende EST", pedestrian: "Place Palestine - Village du Monde zone SE" }
+  ];
+
+  let data = DEFAULT_DATA;
+  let activeFilter = null;
+
+  const listEl = document.getElementById("list");
+  const countEl = document.getElementById("countMsg");
+  const searchInput = document.getElementById("searchInput");
+  const searchBox = document.getElementById("searchBox");
+  const clearBtn = document.getElementById("clearBtn");
+  const mainEl = document.querySelector("main");
+
+  function normalize(str){
+    return (str || "").toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+  }
+
+  function escapeHtml(str){
+    return (str || "").toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function escapeJsArg(str){
+    return (str || "").toString()
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/\\/g, "\\\\")
+      .replace(/'/g, "\\'");
+  }
+
+  function cardHTML(d){
+    const flagBadge = d.flag
+      ? `<span class="flag-badge" title="Marqueur">${escapeHtml(d.flag)}</span>`
+      : "";
+    return `
+      <div class="card">
+        <div class="main-info">
+          <h2><span class="stand-name" role="button" tabindex="0" onclick="zoomToStand('${escapeJsArg(d.stand)}','${escapeJsArg(d.rue)}')" onkeydown="if(event.key==='Enter')zoomToStand('${escapeJsArg(d.stand)}','${escapeJsArg(d.rue)}')">${escapeHtml(d.stand)}</span>${flagBadge}</h2>
+          <div class="field-row"><span class="label">Rue / Place</span><span class="value">${escapeHtml(d.rue)}</span></div>
+          <div class="field-row"><span class="label">Zone</span><span class="value">${escapeHtml(d.zone)}</span></div>
+          ${d.pedestrian ? `<div class="field-row" style="margin-bottom:0;"><span class="label">Zonage piéton</span><span class="value">${escapeHtml(d.pedestrian)}</span></div>` : ""}
+        </div>
+        <div class="badge-col">
+          <button type="button" class="badge" onclick="filterByPompier('${escapeHtml(d.pompier)}')" aria-label="Voir uniquement les stands du poste pompier ${escapeHtml(d.pompier)}">
+            <div class="num">${escapeHtml(d.pompier)}</div>
+            <div class="tag">pompier</div>
+          </button>
+          ${d.pompier2 ? `
+          <button type="button" class="badge badge-secondary" onclick="filterByPompier('${escapeHtml(d.pompier2)}')" aria-label="Voir uniquement les stands du poste pompier ${escapeHtml(d.pompier2)}">
+            <div class="num">${escapeHtml(d.pompier2)}</div>
+            <div class="tag">pompier 2</div>
+          </button>` : ""}
+        </div>
+      </div>
+    `;
+  }
+
+  function render(){
+    const q = normalize(searchInput.value);
+    searchBox.classList.toggle("has-value", searchInput.value.length > 0);
+
+    const base = activeFilter ? data.filter(d => d.pompier === activeFilter || d.pompier2 === activeFilter) : data;
+    const filtered = q
+      ? base.filter(d => normalize(d.stand + " " + d.rue + " " + d.pompier + " " + d.zone + " " + (d.pedestrian || "") + " " + (d.flag || "")).includes(q))
+      : base;
+
+    document.querySelector(".empty")?.remove();
+    document.querySelector(".filter-banner")?.remove();
+
+    if (activeFilter){
+      const banner = document.createElement("div");
+      banner.className = "filter-banner";
+      banner.innerHTML = `<span>Poste pompier <strong>${escapeHtml(activeFilter)}</strong> — ${base.length} stand${base.length > 1 ? "s" : ""}</span><button type="button" onclick="clearFilter()">Voir tout</button>`;
+      countEl.insertAdjacentElement("beforebegin", banner);
+    }
+
+    if (filtered.length === 0){
+      listEl.innerHTML = "";
+      countEl.textContent = "";
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = q
+        ? `Aucun stand ne correspond à « ${searchInput.value.trim()} ».`
+        : "Aucune donnée pour le moment.";
+      mainEl.appendChild(empty);
+      return;
+    }
+
+    countEl.textContent = q
+      ? `${filtered.length} résultat${filtered.length > 1 ? "s" : ""}`
+      : `${filtered.length} stands au total`;
+    listEl.innerHTML = filtered.map(cardHTML).join("");
+  }
+
+  function filterByPompier(num){
+    activeFilter = num;
+    render();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function clearFilter(){
+    activeFilter = null;
+    render();
+  }
+
+  /* ---------- Pastilles d'en-tête ---------- */
+  const HEADER_BADGE_CONTENT = {
+    numeros: ["Secours", "Central", "Régie technique", "AGP"]
+  };
+  const HEADER_BADGE_IDS = { left: "hb-left", middle: "hb-middle", numeros: "hb-numeros" };
+  let openHeaderBadge = null;
+  const headerPanel = document.getElementById("headerPanel");
+
+  /* ---------- Programmation ---------- */
+  const PROG_DAYS = ["Vendredi", "Samedi", "Dimanche"];
+  const PROG_DATA = [
+    { day: "Vendredi", stage: "Angela Davis", name: "EBONY", start: "17:40", end: "18:30" },
+    { day: "Vendredi", stage: "Zebrock", name: "RIF 91 NUIT NOIRE", start: "17:50", end: "18:40" },
+    { day: "Vendredi", stage: "Joséphine Baker", name: "RORI", start: "18:20", end: "19:10" },
+    { day: "Vendredi", stage: "Angela Davis", name: "MAUREEN", start: "19:00", end: "20:00" },
+    { day: "Vendredi", stage: "Zebrock", name: "ARMEE", start: "19:10", end: "20:10" },
+    { day: "Vendredi", stage: "Joséphine Baker", name: "SAM SAUVAGE", start: "19:40", end: "20:40" },
+    { day: "Vendredi", stage: "Angela Davis", name: "JOSMAN", start: "20:30", end: "21:30" },
+    { day: "Vendredi", stage: "Zebrock", name: "GRAND ZEBROCK 1", start: "20:40", end: "21:30" },
+    { day: "Vendredi", stage: "Joséphine Baker", name: "INO CASABLANCA", start: "21:10", end: "22:10" },
+    { day: "Vendredi", stage: "Angela Davis", name: "KNEECAP", start: "22:00", end: "23:20" },
+    { day: "Vendredi", stage: "Zebrock", name: "2L", start: "22:00", end: "22:50" },
+    { day: "Vendredi", stage: "Joséphine Baker", name: "DRAG RACE FRANCE LIVE : Royal Show", start: "22:40", end: "23:40" },
+    { day: "Vendredi", stage: "Zebrock", name: "DANYL", start: "23:20", end: "00:20" },
+    { day: "Vendredi", stage: "Joséphine Baker", name: "TRINIX", start: "00:00", end: "01:10" },
+    { day: "Vendredi", stage: "Joséphine Baker", name: "KIDDY SMILE", start: "01:10", end: "02:40" },
+    { day: "Vendredi", stage: "Joséphine Baker", name: "LB AKA LABAT", start: "02:40", end: "03:40" },
+    { day: "Vendredi", stage: "Joséphine Baker", name: "AGNESA", start: "03:40", end: "04:30" },
+
+    { day: "Samedi", stage: "Angela Davis", name: "OXMO PUCCINO", start: "14:20", end: "15:20" },
+    { day: "Samedi", stage: "Zebrock", name: "EDEMZI (familial JM France)", start: "14:40", end: "15:30" },
+    { day: "Samedi", stage: "Joséphine Baker", name: "GAUVAIN SERS", start: "15:10", end: "16:20" },
+    { day: "Samedi", stage: "Angela Davis", name: "YURI BUENAVENTURA", start: "15:50", end: "17:00" },
+    { day: "Samedi", stage: "Zebrock", name: "GRAND ZEBROCK 2", start: "16:10", end: "17:00" },
+    { day: "Samedi", stage: "Joséphine Baker", name: "THEA", start: "16:50", end: "17:50" },
+    { day: "Samedi", stage: "Zebrock", name: "KUTU", start: "17:30", end: "18:20" },
+    { day: "Samedi", stage: "Angela Davis", name: "MEETING", start: "17:40", end: "18:20" },
+    { day: "Samedi", stage: "Joséphine Baker", name: "HOUDI", start: "18:20", end: "19:20" },
+    { day: "Samedi", stage: "Angela Davis", name: "UB 40", start: "18:30", end: "19:50" },
+    { day: "Samedi", stage: "Zebrock", name: "AÏTA MON AMOUR", start: "18:50", end: "19:50" },
+    { day: "Samedi", stage: "Joséphine Baker", name: "GIRLS IN HAWAII", start: "19:50", end: "20:50" },
+    { day: "Samedi", stage: "Angela Davis", name: "SUZANNE", start: "20:20", end: "21:30" },
+    { day: "Samedi", stage: "Zebrock", name: "ARONE", start: "20:20", end: "21:20" },
+    { day: "Samedi", stage: "Joséphine Baker", name: "NAZA", start: "21:20", end: "22:20" },
+    { day: "Samedi", stage: "Zebrock", name: "ETIENNE DE CRECY", start: "21:50", end: "23:00" },
+    { day: "Samedi", stage: "Angela Davis", name: "THE AVENER", start: "22:00", end: "23:20" },
+    { day: "Samedi", stage: "Joséphine Baker", name: "PERCEVAL", start: "22:50", end: "00:20" },
+    { day: "Samedi", stage: "Joséphine Baker", name: "BELARIA", start: "00:30", end: "02:00" },
+    { day: "Samedi", stage: "Joséphine Baker", name: "VEL", start: "02:00", end: "03:30" },
+    { day: "Samedi", stage: "Joséphine Baker", name: "CHIPPY NON STOP", start: "03:30", end: "04:30" },
+
+    { day: "Dimanche", stage: "Angela Davis", name: "WAMPAS", start: "14:00", end: "15:00" },
+    { day: "Dimanche", stage: "Zebrock", name: "RADICALE MAGNY", start: "14:10", end: "15:10" },
+    { day: "Dimanche", stage: "Joséphine Baker", name: "MONA GUBA", start: "15:00", end: "15:50" },
+    { day: "Dimanche", stage: "Angela Davis", name: "OUMOU SANGARE", start: "15:30", end: "16:30" },
+    { day: "Dimanche", stage: "Zebrock", name: "GRAND ZEBROCK 3", start: "15:40", end: "16:30" },
+    { day: "Dimanche", stage: "Joséphine Baker", name: "KERY JAMES", start: "16:20", end: "17:20" },
+    { day: "Dimanche", stage: "Angela Davis", name: "LOUANE", start: "17:00", end: "18:00" },
+    { day: "Dimanche", stage: "Zebrock", name: "MARCUS GAD", start: "17:00", end: "18:00" },
+    { day: "Dimanche", stage: "Joséphine Baker", name: "ZOUFRI MARACAS", start: "17:50", end: "18:50" },
+    { day: "Dimanche", stage: "Zebrock", name: "ARTHUR FU BANDINI", start: "18:30", end: "19:30" },
+    { day: "Dimanche", stage: "Angela Davis", name: "SOPRANO", start: "18:40", end: "20:10" },
+    { day: "Dimanche", stage: "Joséphine Baker", name: "SUPERBUS", start: "19:20", end: "20:30" }
+  ];
+
+  function progSortKey(t){
+    const [h, m] = t.split(":").map(Number);
+    return (h < 6 ? h + 24 : h) * 60 + m;
+  }
+
+  let progActiveDay = "Vendredi";
+
+  function setProgDay(day){
+    progActiveDay = day;
+    headerPanel.innerHTML = renderHeaderPanelContent("middle");
+  }
+
+  function renderProgPanel(){
+    const items = PROG_DATA
+      .filter(e => e.day === progActiveDay)
+      .sort((a, b) => progSortKey(a.start) - progSortKey(b.start));
+
+    const tabs = PROG_DAYS.map(d => `
+      <button type="button" class="prog-tab${d === progActiveDay ? " active" : ""}" onclick="setProgDay('${d}')">${d}</button>
+    `).join("");
+
+    const list = items.map(e => `
+      <div class="prog-item">
+        <div class="prog-time">${escapeHtml(e.start)} - ${escapeHtml(e.end)}</div>
+        <div class="prog-scene">Scène ${escapeHtml(e.stage)}</div>
+        <div class="prog-artist">${escapeHtml(e.name)}</div>
+      </div>
+    `).join("");
+
+    return `<div class="prog-tabs">${tabs}</div><div class="prog-list">${list}</div>`;
+  }
+
+  function renderHeaderPanelContent(key){
+    if (key === "middle"){
+      return renderProgPanel();
+    }
+    const items = HEADER_BADGE_CONTENT[key];
+    return (items && items.length)
+      ? `<ul>${items.map(i => `<li>${escapeHtml(i)}</li>`).join("")}</ul>`
+      : `<p class="placeholder">Contenu à venir.</p>`;
+  }
+
+  /* ---------- Coordonnées des rues/places sur le plan (fractions 0-1) ---------- */
+  const STAND_BOXES = {
+    "Plessis Pâte": { x0: 0.2135, x1: 0.234, top: 0.2465, bottom: 0.259 },
+    "Oise Expo": { x0: 0.2322, x1: 0.2381, top: 0.2533, bottom: 0.2611 },
+    "Génération.s": { x0: 0.2608, x1: 0.2714, top: 0.2398, bottom: 0.2427 },
+    "EELV": { x0: 0.2783, x1: 0.287, top: 0.2466, bottom: 0.2524 },
+    "Debout (la France)": { x0: 0.3008, x1: 0.3063, top: 0.2477, bottom: 0.2505 },
+    "Saint Quentin": { x0: 0.308, x1: 0.3186, top: 0.247, bottom: 0.2568 },
+    "FD Ain": { x0: 0.3602, x1: 0.3693, top: 0.2429, bottom: 0.2476 },
+    "FSGT": { x0: 0.2227, x1: 0.2273, top: 0.2819, bottom: 0.2876 },
+    "NPA": { x0: 0.2531, x1: 0.2587, top: 0.2821, bottom: 0.2869 },
+    "Vitry Rassemblé(e)": { x0: 0.2614, x1: 0.2697, top: 0.281, bottom: 0.2871 },
+    "Confédération Paysanne": { x0: 0.2739, x1: 0.2896, top: 0.2819, bottom: 0.2857 },
+    "Rev": { x0: 0.3025, x1: 0.307, top: 0.2801, bottom: 0.2848 },
+    "Non Violence": { x0: 0.3114, x1: 0.3182, top: 0.2801, bottom: 0.286 },
+    "Santé en Danger": { x0: 0.3133, x1: 0.3183, top: 0.2915, bottom: 0.2954 },
+    "SOS Racisme": { x0: 0.3117, x1: 0.3179, top: 0.3, bottom: 0.3058 },
+    "La Jeunesse Communiste": { x0: 0.3073, x1: 0.3172, top: 0.3135, bottom: 0.3194 },
+    "UNEF": { x0: 0.2992, x1: 0.3081, top: 0.3219, bottom: 0.3277 },
+    "NPA Révolutionnaires": { x0: 0.3569, x1: 0.3662, top: 0.2891, bottom: 0.2973 },
+    "Avocats": { x0: 0.353, x1: 0.3575, top: 0.3002, bottom: 0.3021 },
+    "CGT FTDNEEA": { x0: 0.3413, x1: 0.3544, top: 0.3082, bottom: 0.3179 },
+    "USS": { x0: 0.3354, x1: 0.3419, top: 0.3225, bottom: 0.3282 },
+    "JOC": { x0: 0.3125, x1: 0.317, top: 0.3467, bottom: 0.3515 },
+    "Bobigny": { x0: 0.1944, x1: 0.205, top: 0.3038, bottom: 0.3086 },
+    "FD93": { x0: 0.1925, x1: 0.1997, top: 0.3455, bottom: 0.3502 },
+    "Roissy": { x0: 0.9249, x1: 0.9317, top: 0.3378, bottom: 0.3417 },
+    "Tremblay": { x0: 0.1897, x1: 0.2019, top: 0.3763, bottom: 0.382 },
+    "Livry": { x0: 0.1959, x1: 0.1986, top: 0.3887, bottom: 0.3906 },
+    "Aubervilliers": { x0: 0.1875, x1: 0.2021, top: 0.3968, bottom: 0.4006 },
+    "St Denis": { x0: 0.192, x1: 0.1992, top: 0.4311, bottom: 0.4409 },
+    "Bretigny": { x0: 0.2178, x1: 0.2272, top: 0.3037, bottom: 0.3075 },
+    "LDH": { x0: 0.2185, x1: 0.2239, top: 0.3138, bottom: 0.3195 },
+    "La Familiale": { x0: 0.2178, x1: 0.2306, top: 0.3286, bottom: 0.332 },
+    "Bagnolet-Montreuil": { x0: 0.2171, x1: 0.2281, top: 0.354, bottom: 0.3617 },
+    "Saint Ouen Épinay": { x0: 0.3095, x1: 0.317, top: 0.247, bottom: 0.2518 },
+    "Noisy le Sec Bondy": { x0: 0.2274, x1: 0.2414, top: 0.374, bottom: 0.3778 },
+    "Pantin": { x0: 0.2461, x1: 0.2533, top: 0.3781, bottom: 0.3819 },
+    "Vienne": { x0: 0.3555, x1: 0.3682, top: 0.4492, bottom: 0.455 },
+    "Extinction Rebellion": { x0: 0.2971, x1: 0.3028, top: 0.3665, bottom: 0.3703 },
+    "FSE": { x0: 0.2951, x1: 0.2987, top: 0.3726, bottom: 0.3764 },
+    "L'Après": { x0: 0.2793, x1: 0.2853, top: 0.3901, bottom: 0.3929 },
+    "Parti Socialiste": { x0: 0.2833, x1: 0.2899, top: 0.4075, bottom: 0.4113 },
+    "Landes": { x0: 0.3265, x1: 0.338, top: 0.4059, bottom: 0.4116 },
+    "Pyrénées-Atlantiques (64)": { x0: 0.3414, x1: 0.3488, top: 0.4028, bottom: 0.4057 },
+    "Dordogne-Gironde": { x0: 0.3591, x1: 0.3744, top: 0.3966, bottom: 0.4078 },
+    "Cote d Or 21": { x0: 0.2715, x1: 0.2808, top: 0.4426, bottom: 0.4488 },
+    "Jura": { x0: 0.2853, x1: 0.2919, top: 0.4453, bottom: 0.45 },
+    "Belfort": { x0: 0.2992, x1: 0.307, top: 0.4434, bottom: 0.4468 },
+    "FD de l'Yonne": { x0: 0.3073, x1: 0.3183, top: 0.4422, bottom: 0.45 },
+    "Charente-Maritime": { x0: 0.6471, x1: 0.6601, top: 0.1862, bottom: 0.191 },
+    "Lot-et-Garonne (47)": { x0: 0.3447, x1: 0.3517, top: 0.4445, bottom: 0.4503 },
+    "Allier 03": { x0: 0.3872, x1: 0.4004, top: 0.245, bottom: 0.2498 },
+    "Vaucluse": { x0: 0.3761, x1: 0.3849, top: 0.2791, bottom: 0.2838 },
+    "Haute Corse": { x0: 0.3952, x1: 0.4012, top: 0.286, bottom: 0.2931 },
+    "Les 3 Bougnats": { x0: 0.4057, x1: 0.4184, top: 0.2384, bottom: 0.2482 },
+    "FD Isère": { x0: 0.424, x1: 0.4357, top: 0.2412, bottom: 0.2459 },
+    "Rhône-Alpes 2 Savoies": { x0: 0.4406, x1: 0.4577, top: 0.2305, bottom: 0.2402 },
+    "Ardèche & Loire": { x0: 0.4672, x1: 0.4761, top: 0.2303, bottom: 0.2381 },
+    "FSU": { x0: 0.4804, x1: 0.4858, top: 0.2297, bottom: 0.2345 },
+    "VTS": { x0: 0.4882, x1: 0.4891, top: 0.3472, bottom: 0.3481 },
+    "Forum social": { x0: 0.4696, x1: 0.4703, top: 0.257, bottom: 0.2574 },
+    "Amnesty International": { x0: 0.4922, x1: 0.4968, top: 0.231, bottom: 0.2329 },
+    "JC Loire-Atlantique": { x0: 0.4973, x1: 0.5035, top: 0.2304, bottom: 0.2343 },
+    "JC Vendée": { x0: 0.5424, x1: 0.5514, top: 0.2185, bottom: 0.2224 },
+    "Vendée": { x0: 0.5517, x1: 0.5611, top: 0.2049, bottom: 0.2096 },
+    "FD Yvelines": { x0: 0.5219, x1: 0.5415, top: 0.2507, bottom: 0.2564 },
+    "Val d'Oise (bloc 1)": { x0: 0.528, x1: 0.5417, top: 0.2704, bottom: 0.2751 },
+    "Val d'Oise (bloc 2)": { x0: 0.528, x1: 0.5417, top: 0.2704, bottom: 0.2751 },
+    "Val d'Oise (bloc 3)": { x0: 0.528, x1: 0.5417, top: 0.2704, bottom: 0.2751 },
+    "Coopératives des Élus Communistes": { x0: 0.533, x1: 0.5436, top: 0.316, bottom: 0.3188 },
+    "ARS": { x0: 0.5377, x1: 0.5434, top: 0.36, bottom: 0.3657 },
+    "FMF": { x0: 0.5183, x1: 0.5193, top: 0.3586, bottom: 0.3596 },
+    "La France Insoumise": { x0: 0.4079, x1: 0.4249, top: 0.313, bottom: 0.3247 },
+    "Livres en Luttes": { x0: 0.4264, x1: 0.4367, top: 0.3207, bottom: 0.3285 },
+    "Expo Humanité (FNSAC-CGT)": { x0: 0.4699, x1: 0.4821, top: 0.3696, bottom: 0.3797 },
+    "Village des Médias Indépendants": { x0: 0.4897, x1: 0.5022, top: 0.3872, bottom: 0.391 },
+    "La Riposte": { x0: 0.4986, x1: 0.5043, top: 0.3624, bottom: 0.3644 },
+    "Attac": { x0: 0.504, x1: 0.509, top: 0.3668, bottom: 0.3697 },
+    "Marne": { x0: 0.9232, x1: 0.9301, top: 0.2871, bottom: 0.291 },
+    "Gers": { x0: 0.3866, x1: 0.3927, top: 0.3999, bottom: 0.4046 },
+    "Occitanie": { x0: 0.3981, x1: 0.4059, top: 0.3981, bottom: 0.402 },
+    "Haute Garonne": { x0: 0.4103, x1: 0.4242, top: 0.4012, bottom: 0.4129 },
+    "Aveyron": { x0: 0.4323, x1: 0.4458, top: 0.4021, bottom: 0.4078 },
+    "Cuba Si France / SIPC": { x0: 0.4482, x1: 0.4613, top: 0.4013, bottom: 0.4111 },
+    "Save": { x0: 0.4685, x1: 0.473, top: 0.4119, bottom: 0.4148 },
+    "Nous Toutes": { x0: 0.4776, x1: 0.4871, top: 0.4133, bottom: 0.4175 },
+    "S2LH": { x0: 0.4925, x1: 0.4938, top: 0.4115, bottom: 0.4124 },
+    "Gard": { x0: 0.4112, x1: 0.4177, top: 0.443, bottom: 0.4487 },
+    "Pyrénées-Orientales (66)": { x0: 0.3414, x1: 0.3488, top: 0.4028, bottom: 0.4057 },
+    "Nova": { x0: 0.5172, x1: 0.5185, top: 0.3773, bottom: 0.3782 },
+    "Snecma Corbeil-Villaroche": { x0: 0.6248, x1: 0.6308, top: 0.1865, bottom: 0.1894 },
+    "Grigny": { x0: 0.6363, x1: 0.6451, top: 0.1844, bottom: 0.1892 },
+    "Charente": { x0: 0.6471, x1: 0.6601, top: 0.1862, bottom: 0.191 },
+    "Corbeil-Essonnes": { x0: 0.6248, x1: 0.6309, top: 0.1895, bottom: 0.1924 },
+    "Meurthe-et-Moselle": { x0: 0.7084, x1: 0.7178, top: 0.1673, bottom: 0.1731 },
+    "Éclair": { x0: 0.7183, x1: 0.7234, top: 0.172, bottom: 0.1749 },
+    "Moselle": { x0: 0.7284, x1: 0.7395, top: 0.1649, bottom: 0.1696 },
+    "Malakoff": { x0: 0.7617, x1: 0.7745, top: 0.161, bottom: 0.1658 },
+    "Nanterre": { x0: 0.7774, x1: 0.7904, top: 0.1535, bottom: 0.1583 },
+    "Scène 92": { x0: 0.7949, x1: 0.8075, top: 0.1388, bottom: 0.1436 },
+    "Gennevilliers": { x0: 0.7543, x1: 0.7767, top: 0.2019, bottom: 0.2076 },
+    "Antony": { x0: 0.7917, x1: 0.8015, top: 0.1924, bottom: 0.1972 },
+    "Asnières": { x0: 0.8091, x1: 0.8161, top: 0.1871, bottom: 0.19 },
+    "Printemps des Corbeil": { x0: 0.6655, x1: 0.6708, top: 0.3723, bottom: 0.3742 },
+    "Val-de-Seine Ris-Orangis Draveil": { x0: 0.6151, x1: 0.6219, top: 0.196, bottom: 0.1979 },
+    "Morsang": { x0: 0.6223, x1: 0.6329, top: 0.227, bottom: 0.233 },
+    "Nord Essonne": { x0: 0.6305, x1: 0.6369, top: 0.2218, bottom: 0.2277 },
+    "Hurepoix": { x0: 0.6383, x1: 0.6477, top: 0.2248, bottom: 0.2286 },
+    "Yvette / CEA": { x0: 0.6515, x1: 0.6571, top: 0.2186, bottom: 0.2244 },
+    "Aube": { x0: 0.6597, x1: 0.6661, top: 0.2297, bottom: 0.2348 },
+    "Vosges": { x0: 0.6631, x1: 0.6726, top: 0.2503, bottom: 0.255 },
+    "Lutte Ouvrière": { x0: 0.6654, x1: 0.6702, top: 0.2635, bottom: 0.2663 },
+    "Libre Comme l'Art": { x0: 0.5796, x1: 0.5869, top: 0.2652, bottom: 0.2711 },
+    "MJCF": { x0: 0.6643, x1: 0.672, top: 0.281, bottom: 0.2858 },
+    "Ivry": { x0: 0.6614, x1: 0.6681, top: 0.3278, bottom: 0.3335 },
+    "Oxfam": { x0: 0.6661, x1: 0.6759, top: 0.3514, bottom: 0.3571 },
+    "Fontenay": { x0: 0.6888, x1: 0.7019, top: 0.2996, bottom: 0.3044 },
+    "Bonneuil": { x0: 0.6882, x1: 0.7001, top: 0.3414, bottom: 0.3462 },
+    "Finistère": { x0: 0.7287, x1: 0.7413, top: 0.337, bottom: 0.3418 },
+    "Fresnes": { x0: 0.7161, x1: 0.7277, top: 0.3505, bottom: 0.3555 },
+    "Valenton-Orly": { x0: 0.6911, x1: 0.6961, top: 0.2576, bottom: 0.2615 },
+    "Philistin Palestine": { x0: 0.7936, x1: 0.8005, top: 0.2827, bottom: 0.2856 },
+    "KCP": { x0: 0.7877, x1: 0.7903, top: 0.287, bottom: 0.2899 },
+    "Cuba Coop": { x0: 0.7583, x1: 0.772, top: 0.2911, bottom: 0.2991 },
+    "AMDH": { x0: 0.7813, x1: 0.7853, top: 0.2948, bottom: 0.2976 },
+    "PG Iran": { x0: 0.7825, x1: 0.7925, top: 0.3268, bottom: 0.3316 },
+    "CDK-F": { x0: 0.7735, x1: 0.7778, top: 0.3391, bottom: 0.342 },
+    "France Kurdistan": { x0: 0.7928, x1: 0.8008, top: 0.3168, bottom: 0.3227 },
+    "Pafha": { x0: 0.7651, x1: 0.7699, top: 0.3492, bottom: 0.352 },
+    "AFPS": { x0: 0.8316, x1: 0.8347, top: 0.2519, bottom: 0.2578 },
+    "Champs-sur-Marne": { x0: 0.9203, x1: 0.9329, top: 0.2832, bottom: 0.291 },
+    "Mitry": { x0: 0.925, x1: 0.9338, top: 0.3188, bottom: 0.3245 },
+    "Roissy-en-Brie": { x0: 0.9245, x1: 0.9322, top: 0.3378, bottom: 0.3456 },
+    "Gentilly": { x0: 0.9258, x1: 0.9397, top: 0.3957, bottom: 0.4014 },
+    "FD Nièvre": { x0: 0.9259, x1: 0.9422, top: 0.4174, bottom: 0.4231 },
+    "Vitry": { x0: 0.8611, x1: 0.8699, top: 0.3207, bottom: 0.3264 },
+    "Villejuif": { x0: 0.8809, x1: 0.8955, top: 0.3198, bottom: 0.3255 },
+    "Champigny": { x0: 0.8412, x1: 0.8553, top: 0.3269, bottom: 0.3317 },
+    "La Courneuve": { x0: 0.8251, x1: 0.844, top: 0.3449, bottom: 0.3496 },
+    "Morbihan": { x0: 0.7654, x1: 0.7805, top: 0.3716, bottom: 0.3773 },
+    "Paris 19": { x0: 0.7839, x1: 0.7951, top: 0.3819, bottom: 0.3867 },
+    "Paris 16": { x0: 0.8023, x1: 0.8136, top: 0.3944, bottom: 0.3992 },
+    "FD Paris": { x0: 0.78, x1: 0.7858, top: 0.4269, bottom: 0.4347 },
+    "Paris 20": { x0: 0.7904, x1: 0.7999, top: 0.4367, bottom: 0.4405 },
+    "RATP": { x0: 0.807, x1: 0.815, top: 0.4461, bottom: 0.4518 },
+    "Paris 12 Cheminots": { x0: 0.8163, x1: 0.8273, top: 0.4539, bottom: 0.4617 },
+    "Île-et-Vilaine (35)": { x0: 0.7565, x1: 0.7718, top: 0.4159, bottom: 0.4197 },
+    "Bouche du Rhône": { x0: 0.7115, x1: 0.721, top: 0.4001, bottom: 0.4049 },
+    "FD Côtes-d'Armor (22)": { x0: 0.7277, x1: 0.7405, top: 0.4003, bottom: 0.4051 },
+    "Fest Noz": { x0: 0.75, x1: 0.7551, top: 0.4049, bottom: 0.4127 },
+    "CN": { x0: 0.702, x1: 0.7058, top: 0.4208, bottom: 0.4256 },
+    "PGE": { x0: 0.6806, x1: 0.684, top: 0.4359, bottom: 0.4398 },
+    "OLP": { x0: 0.6852, x1: 0.6878, top: 0.4324, bottom: 0.4362 },
+    "Briare": { x0: 0.5779, x1: 0.5868, top: 0.3739, bottom: 0.3787 },
+    "Loiret": { x0: 0.5838, x1: 0.5943, top: 0.3835, bottom: 0.3893 },
+    "Indre-et-Loire": { x0: 0.5951, x1: 0.6086, top: 0.3947, bottom: 0.4063 },
+    "FD Cher": { x0: 0.6124, x1: 0.626, top: 0.4088, bottom: 0.4145 },
+    "CGT Commerce": { x0: 0.6312, x1: 0.6499, top: 0.4075, bottom: 0.4122 },
+    "Printemps Écologique": { x0: 0.6655, x1: 0.6714, top: 0.3723, bottom: 0.3762 },
+    "Eure": { x0: 0.5784, x1: 0.5861, top: 0.4424, bottom: 0.4481 },
+    "Calvados": { x0: 0.5894, x1: 0.6043, top: 0.4418, bottom: 0.4475 },
+    "Manche": { x0: 0.608, x1: 0.621, top: 0.4464, bottom: 0.4521 },
+    "FD Seine-Maritime": { x0: 0.6223, x1: 0.634, top: 0.4437, bottom: 0.4534 },
+    "Dieppe": { x0: 0.6336, x1: 0.6395, top: 0.4421, bottom: 0.445 },
+    "Elbeuf": { x0: 0.6502, x1: 0.6604, top: 0.4448, bottom: 0.4517 },
+    "Le Havre": { x0: 0.662, x1: 0.6755, top: 0.4448, bottom: 0.4517 },
+    "Comité E H Diara": { x0: 0.2645, x1: 0.2671, top: 0.376, bottom: 0.3774 },
+    "L après": { x0: 0.2793, x1: 0.2853, top: 0.3901, bottom: 0.3929 },
+    "Lacimade": { x0: 0.2708, x1: 0.2744, top: 0.4036, bottom: 0.405 },
+    "Tarn et garonne": { x0: 0.4391, x1: 0.4484, top: 0.4422, bottom: 0.45 },
+    "Lozere": { x0: 0.4542, x1: 0.4614, top: 0.4427, bottom: 0.4466 },
+    "Nord": { x0: 0.4988, x1: 0.5067, top: 0.4471, bottom: 0.4528 },
+    "fnsac cgt": { x0: 0.4821, x1: 0.4904, top: 0.376, bottom: 0.3789 },
+    "SIF": { x0: 0.8193, x1: 0.8231, top: 0.1485, bottom: 0.1533 },
+    "Paris 15": { x0: 0.8299, x1: 0.8385, top: 0.147, bottom: 0.1508 },
+    "Pionnier": { x0: 0.8556, x1: 0.8644, top: 0.1348, bottom: 0.1386 },
+    "La Grosse Boîte": { x0: 0.8457, x1: 0.8538, top: 0.1698, bottom: 0.1727 },
+    "Cuba France": { x0: 0.8835, x1: 0.891, top: 0.131, bottom: 0.1387 },
+    "2 Rives Tunisie": { x0: 0.8928, x1: 0.8966, top: 0.1368, bottom: 0.1388 },
+    "MRAP": { x0: 0.8747, x1: 0.8772, top: 0.136, bottom: 0.1379 },
+    "SGLCE LIVRE CGT": { x0: 0.8795, x1: 0.8832, top: 0.1389, bottom: 0.1408 },
+    "Boulogne-Billancourt": { x0: 0.8284, x1: 0.8381, top: 0.1843, bottom: 0.1902 },
+    "Avente": { x0: 0.8387, x1: 0.8444, top: 0.1983, bottom: 0.2012 },
+    "FAL": { x0: 0.8712, x1: 0.8778, top: 0.1921, bottom: 0.197 },
+    "APDH": { x0: 0.8467, x1: 0.8529, top: 0.2263, bottom: 0.2311 },
+    "Sinnamary Guyane": { x0: 0.833, x1: 0.8415, top: 0.2199, bottom: 0.2227 },
+    "Soudanais": { x0: 0.8426, x1: 0.8532, top: 0.2003, bottom: 0.2051 },
+    "Nicaragua": { x0: 0.8535, x1: 0.8591, top: 0.206, bottom: 0.2079 },
+    "PC Irakien": { x0: 0.8618, x1: 0.8694, top: 0.1998, bottom: 0.2076 },
+    "KKP": { x0: 0.8873, x1: 0.8918, top: 0.176, bottom: 0.1812 },
+    "ACSF": { x0: 0.8896, x1: 0.8946, top: 0.1677, bottom: 0.1715 },
+    "Parti Tudeh d'Iran": { x0: 0.8639, x1: 0.8694, top: 0.2451, bottom: 0.253 },
+    "ACCA": { x0: 0.9053, x1: 0.9093, top: 0.1696, bottom: 0.1725 },
+    "Zaama Faso bénévolat culturel": { x0: 0.8986, x1: 0.902, top: 0.1819, bottom: 0.1839 },
+    "Xam-Xamle": { x0: 0.9069, x1: 0.9127, top: 0.1885, bottom: 0.1904 },
+    "SOS  méditerranée": { x0: 0.9092, x1: 0.9128, top: 0.174, bottom: 0.176 },
+    "Journal PC Guadeloupe": { x0: 0.907, x1: 0.9126, top: 0.198, bottom: 0.2004 },
+    "Survie Contre néo colonialisme": { x0: 0.9079, x1: 0.912, top: 0.2168, bottom: 0.2192 },
+    "Parti des Travailleurs": { x0: 0.9019, x1: 0.9139, top: 0.2264, bottom: 0.235 },
+    "Madagascar": { x0: 0.8477, x1: 0.8576, top: 0.2373, bottom: 0.2402 },
+    "Mésopotamie": { x0: 0.8549, x1: 0.8686, top: 0.2576, bottom: 0.2636 },
+    "ACTIT": { x0: 0.8929, x1: 0.8972, top: 0.2598, bottom: 0.2622 },
+    "USTKE": { x0: 0.8936, x1: 0.8983, top: 0.2686, bottom: 0.271 },
+    "Hébron": { x0: 0.8374, x1: 0.8432, top: 0.2825, bottom: 0.2854 },
+    "Palestine": { x0: 0.8142, x1: 0.8272, top: 0.2732, bottom: 0.278 },
+    "Le Rif": { x0: 0.8733, x1: 0.8773, top: 0.2437, bottom: 0.2461 },
+    "PC Chilien": { x0: 0.8474, x1: 0.8527, top: 0.2528, bottom: 0.2547 },
+    "FUAF": { x0: 0.8981, x1: 0.9012, top: 0.2305, bottom: 0.2341 },
+    "Indonésie": { x0: 0.8802, x1: 0.8864, top: 0.2182, bottom: 0.2206 },
+    "Libérons Mumia": { x0: 0.9052, x1: 0.9111, top: 0.2346, bottom: 0.2395 },
+    "PCM Martinique": { x0: 0.9219, x1: 0.9308, top: 0.1585, bottom: 0.1643 },
+    "Nhân Dan Vietnam": { x0: 0.9227, x1: 0.9328, top: 0.1756, bottom: 0.1794 },
+    "2ATF": { x0: 0.9242, x1: 0.9294, top: 0.2317, bottom: 0.2355 },
+    "Paxason Organe presse laos": { x0: 0.9225, x1: 0.9314, top: 0.1908, bottom: 0.1946 },
+    "Diamant Afrique": { x0: 0.868, x1: 0.8713, top: 0.2398, bottom: 0.2427 },
+    "Val-d'Yerres Val-de-Seine": { x0: 0.615, x1: 0.6334, top: 0.194, bottom: 0.1999 },
+    "Choisy-le-Roi / Villeneuve-Saint-Georges": { x0: 0.6626, x1: 0.6839, top: 0.2938, bottom: 0.317 },
+    "Tran To Nga Vietnam comité contre pétrochimie": { x0: 0.883, x1: 0.8935, top: 0.2512, bottom: 0.2549 },
+    "Red Jeunes": { x0: 0.2892, x1: 0.3015, top: 0.279, bottom: 0.29 },
+    "Justice pour Adama": { x0: 0.2278, x1: 0.2405, top: 0.281, bottom: 0.2895 },
+    "FD 77": { x0: 0.923, x1: 0.9291, top: 0.2939, bottom: 0.298 },
+    "Les Inverties": { x0: 0.2409, x1: 0.2489, top: 0.2812, bottom: 0.2889 },
+    "PCF 04": { x0: 0.3665, x1: 0.3743, top: 0.2824, bottom: 0.2872 },
+    "Cop'i": { x0: 0.3062, x1: 0.3137, top: 0.3567, bottom: 0.3615 },
+    "La Cimade": { x0: 0.2708, x1: 0.2744, top: 0.4036, bottom: 0.405 },
+    "Le Blanc-Mesnil": { x0: 0.194, x1: 0.2001, top: 0.4185, bottom: 0.4233 },
+    "Jeunes ADMD": { x0: 0.2687, x1: 0.2774, top: 0.4112, bottom: 0.417 },
+    "Montfermeil-Clichy": { x0: 0.214, x1: 0.2251, top: 0.341, bottom: 0.345 },
+    "Safe Plaine": { x0: 0.1921, x1: 0.1983, top: 0.2844, bottom: 0.2942 },
+    "AJC / BDR": { x0: 0.2866, x1: 0.2906, top: 0.3799, bottom: 0.3882 },
+    "Amis du Temps des Cerises": { x0: 0.2973, x1: 0.3056, top: 0.4078, bottom: 0.4137 },
+    "FD Doubs": { x0: 0.3063, x1: 0.319, top: 0.4078, bottom: 0.4134 },
+    "Amis Huma": { x0: 0.3904, x1: 0.4006, top: 0.4619, bottom: 0.4716 },
+    "FD Drôme": { x0: 0.3734, x1: 0.382, top: 0.2422, bottom: 0.2522 },
+    "Loire-Atlantique": { x0: 0.5028, x1: 0.5218, top: 0.2205, bottom: 0.2245 },
+    "Maine-et-Loire": { x0: 0.5249, x1: 0.5345, top: 0.2167, bottom: 0.2278 },
+    "JC Maine-et-Loire": { x0: 0.535, x1: 0.5445, top: 0.216, bottom: 0.2275 },
+    "Pays Yonnais": { x0: 0.5628, x1: 0.5704, top: 0.2085, bottom: 0.214 },
+    "Montrouge": { x0: 0.8266, x1: 0.8349, top: 0.1725, bottom: 0.1794 },
+    "Suresnes-Saint-Cloud": { x0: 0.8351, x1: 0.8401, top: 0.1692, bottom: 0.1731 },
+    "Contre Courant Spectacle vivant 31": { x0: 0.8699, x1: 0.8769, top: 0.1409, bottom: 0.1448 },
+    "ASFA Algérie": { x0: 0.9003, x1: 0.9029, top: 0.1348, bottom: 0.1367 },
+    "Front Populaire en Turquie": { x0: 0.8575, x1: 0.8666, top: 0.1638, bottom: 0.1697 },
+    "SORA Orphelinats Mali": { x0: 0.8912, x1: 0.898, top: 0.1586, bottom: 0.1628 },
+    "ARDVKF usagers transports idf": { x0: 0.9021, x1: 0.9089, top: 0.1762, bottom: 0.1791 },
+    "Iranian Fadaian": { x0: 0.8798, x1: 0.8976, top: 0.1942, bottom: 0.2021 },
+    "RDA Rassemblement démocratique Afrique": { x0: 0.8798, x1: 0.8917, top: 0.203, bottom: 0.2068 },
+    "Mouvement de la Paix": { x0: 0.7596, x1: 0.7774, top: 0.3146, bottom: 0.3322 },
+    "PC Mondo": { x0: 0.7457, x1: 0.7715, top: 0.3201, bottom: 0.3322 },
+    "UJFP Union juifs": { x0: 0.804, x1: 0.8175, top: 0.3075, bottom: 0.3117 },
+    "BDS orga de Boycott": { x0: 0.812, x1: 0.8206, top: 0.2991, bottom: 0.3041 },
+    "Annidaa Académie islamique": { x0: 0.8256, x1: 0.8371, top: 0.2344, bottom: 0.2387 },
+    "Rifondazione Comunista Italie": { x0: 0.8462, x1: 0.8594, top: 0.2451, bottom: 0.2507 },
+    "Asso Sahraouis France": { x0: 0.8589, x1: 0.8658, top: 0.263, bottom: 0.2704 },
+    "MST Brésil": { x0: 0.8448, x1: 0.8505, top: 0.2805, bottom: 0.2859 },
+    "Paris 13": { x0: 0.7879, x1: 0.8003, top: 0.3851, bottom: 0.3906 },
+    "JC Paris": { x0: 0.8122, x1: 0.8244, top: 0.3982, bottom: 0.4042 },
+    "MJCF Grande scène": { x0: 0.8194, x1: 0.827, top: 0.3797, bottom: 0.3845 },
+    "Paris 18": { x0: 0.7751, x1: 0.7815, top: 0.4208, bottom: 0.4249 },
+    "Défense de l'Hôpital": { x0: 0.5929, x1: 0.6002, top: 0.1997, bottom: 0.2044 },
+    "PCF bretigny": { x0: 0.6004, x1: 0.6091, top: 0.1966, bottom: 0.2009 },
+    "PCF Sud Essonne": { x0: 0.6093, x1: 0.6192, top: 0.2282, bottom: 0.234 },
+    "Fondation des femmes": { x0: 0.488, x1: 0.4958, top: 0.4133, bottom: 0.4175 },
+    "Pas de calais": { x0: 0.4766, x1: 0.4876, top: 0.4419, bottom: 0.4537 },
+    "Freres des hommes": { x0: 0.4626, x1: 0.4785, top: 0.4419, bottom: 0.4478 },
+    "SPL Air": { x0: 0.5325, x1: 0.5436, top: 0.3355, bottom: 0.3453 },
+    "Espace Numérique": { x0: 0.5801, x1: 0.5878, top: 0.2474, bottom: 0.2503 },
+    "Village du livre": { x0: 0.593, x1: 0.6, top: 0.3079, bottom: 0.3155 },
+    "FD 92": { x0: 0.7506, x1: 0.7583, top: 0.1641, bottom: 0.1691 },
+    "MJCF Hauts-de-Seine": { x0: 0.8101, x1: 0.816, top: 0.147, bottom: 0.1562 },
+    "La Poulletterie": { x0: 0.6494, x1: 0.6628, top: 0.4088, bottom: 0.4169 },
+    "S2LNH": { x0: 0.6401, x1: 0.6485, top: 0.4448, bottom: 0.4517 },
+    "Connolly Communistes irlandais": { x0: 0.9071, x1: 0.9136, top: 0.1802, bottom: 0.1831 },
+    "Médecins Sans Frontières": { x0: 0.9207, x1: 0.9358, top: 0.2135, bottom: 0.2198 },
+    "Chevilly / Rungis": { x0: 0.7012, x1: 0.7145, top: 0.3505, bottom: 0.3603 },
+    "Life ONG Humanitaire": { x0: 0.8473, x1: 0.8493, top: 0.2582, bottom: 0.2601 },
+    "Sinn Féin": { x0: 0.8402, x1: 0.8456, top: 0.2215, bottom: 0.2278 },
+    "Secours Populaire Français": { x0: 0.7985, x1: 0.8117, top: 0.2379, bottom: 0.2526 },
+    "Global Chargeur / ACER": { x0: 0.491, x1: 0.4984, top: 0.3559, bottom: 0.3615 },
+    "Femmes Solidaires": { x0: 0.4021, x1: 0.4091, top: 0.2953, bottom: 0.2992 },
+    "Chorale populaire de Paris": { x0: 0.4077, x1: 0.4158, top: 0.2973, bottom: 0.304 },
+    "FGB (Maroc)": { x0: 0.8862, x1: 0.8927, top: 0.2237, bottom: 0.235 },
+    "Young Struggle jeunes socialistes inter": { x0: 0.893, x1: 0.9036, top: 0.2237, bottom: 0.235 },
+    "Médecins du Monde": { x0: 0.876, x1: 0.887, top: 0.2451, bottom: 0.2517 },
+    "1001 territoires": { x0: 0.3157, x1: 0.319, top: 0.4414, bottom: 0.4451 },
+    "Haute-Saône": { x0: 0.3208, x1: 0.3315, top: 0.444, bottom: 0.4509 },
+    "Haute-Vienne": { x0: 0.3531, x1: 0.3688, top: 0.443, bottom: 0.4539 }
+  };
+
+  const RUE_COORDS = {
+    "Avenue Bobby Sands": { x: 0.2878, y: 0.2669 },
+    "Avenue Elsa Triolet & Louis Aragon": { x: 0.6787, y: 0.3451 },
+    "Avenue Frida Kahlo": { x: 0.296, y: 0.347 },
+    "Avenue Gisèle Halimi": { x: 0.745, y: 0.349 },
+    "Avenue Julien L'Auprêtre": { x: 0.7875, y: 0.1743 },
+    "Avenue Louis Viannet": { x: 0.439, y: 0.230 },
+    "Avenue Marcel Cachin": { x: 0.2082, y: 0.3588 },
+    "Avenue Maurice et Josette Audin": { x: 0.6456, y: 0.2025 },
+    "Avenue Olympe de Gouges": { x: 0.4795, y: 0.4263 },
+    "Avenue Pierre Bourdieu": { x: 0.3256, y: 0.4256 },
+    "Avenue Roland Leroy": { x: 0.6396, y: 0.4244 },
+    "Esplanade  Manouchian": { x: 0.5487, y: 0.2982 },
+    "Place Agnès Varda": { x: 0.3384, y: 0.2822 },
+    "Place Odette Niles": { x: 0.213, y: 0.285 },
+    "Place de l'État de Palestine": { x: 0.816, y: 0.269 },
+    "Plaine Emmeline Pankhurst": { x: 0.2333, y: 0.4073 },
+    "Rue Alvaro Cunhal": { x: 0.832, y: 0.2095 },
+    "Rue Alvaro Cunhel": { x: 0.832, y: 0.2095 },
+    "Rue Che Guevara": { x: 0.886, y: 0.172 },
+    "Rue JM Tjibaou": { x: 0.9078, y: 0.307 },
+    "Rue Jean-Marie Tjibaou": { x: 0.9078, y: 0.307 },
+    "Rue Jean-Marie Tjibaou / Plaine Mary Anning": { x: 0.93, y: 0.34 },
+    "Rue Jina Mahsa Amini": { x: 0.742, y: 0.2765 },
+    "Rue Leymah Gbowee": { x: 0.85, y: 0.158 },
+    "Rue Marguerite Sanger": { x: 0.9144, y: 0.1829 },
+    "Rue Marwan Barghouti": { x: 0.825, y: 0.235 },
+    "Rue Mumia Abu-Jamal": { x: 0.894, y: 0.238 },
+    "Rue Nelson Mandela": { x: 0.83, y: 0.252 },
+    "Rue Rosa Luxembourg": { x: 0.43, y: 0.278 },
+    "Rue du Colonel Fabien": { x: 0.6921, y: 0.3871 },
+    "Voie Pompiers": { x: 0.47, y: 0.30 }
+  };
+
+  const NORMALIZED_RUE_COORDS = {};
+  Object.keys(RUE_COORDS).forEach(key => {
+    NORMALIZED_RUE_COORDS[normalize(key)] = RUE_COORDS[key];
+  });
+
+  const NORMALIZED_STAND_COORDS = {};
+  Object.keys(STAND_BOXES).forEach(key => {
+    NORMALIZED_STAND_COORDS[normalize(key)] = STAND_BOXES[key];
+  });
+
+  function zoomToStand(stand, rue){
+    const box = NORMALIZED_STAND_COORDS[normalize(stand)];
+    if (box){
+      const cx = (box.x0 + box.x1) / 2;
+      const cy = (box.top + box.bottom) / 2;
+      openPlanImage(cx, cy, box);
+      return;
+    }
+    const rueCoord = NORMALIZED_RUE_COORDS[normalize(rue)];
+    if (rueCoord){
+      openPlanImage(rueCoord.x, rueCoord.y, null);
+    } else {
+      openPlanImage();
+    }
+  }
+
+  function updatePlanCloseButtonPosition(){
+    const btn = document.querySelector(".plan-close");
+    const qualityBtn = document.querySelector(".plan-quality-toggle");
+    const overlay = document.getElementById("planOverlay");
+    if (!btn || overlay.classList.contains("hidden")) return;
+    const vv = window.visualViewport;
+    if (vv){
+      const top = vv.offsetTop + 12;
+      const rightEdge = window.innerWidth - (vv.offsetLeft + vv.width);
+      btn.style.top = top + "px";
+      btn.style.right = (rightEdge + 12) + "px";
+      if (qualityBtn){
+        qualityBtn.style.top = top + "px";
+        qualityBtn.style.right = (rightEdge + 60) + "px";
+      }
+    }
+  }
+
+  if (window.visualViewport){
+    window.visualViewport.addEventListener("resize", updatePlanCloseButtonPosition);
+    window.visualViewport.addEventListener("scroll", updatePlanCloseButtonPosition);
+  }
+
+  function handlePlanViewportChange(){
+    const overlay = document.getElementById("planOverlay");
+    if (!overlay || overlay.classList.contains("hidden")) return;
+    updatePlanCloseButtonPosition();
+    // Après une rotation, les dimensions du conteneur changent : on remesure
+    // le rectangle de référence et on recadre le déplacement pour que l'image
+    // (et le rond rouge) restent bien visibles, sans perdre le niveau de zoom.
+    requestAnimationFrame(() => {
+      const stage = document.querySelector(".plan-stage");
+      if (!stage) return;
+      const oldScale = planScale;
+      // Mesure du plan "à plat" (scale 1) pour recalculer les proportions
+      stage.style.transform = "translate(0px, 0px) scale(1)";
+      requestAnimationFrame(() => {
+        planBaseRect = stage.getBoundingClientRect();
+        planScale = oldScale;
+        clampPlanPan();
+        applyPlanTransform();
+      });
+    });
+  }
+
+  window.addEventListener("resize", handlePlanViewportChange);
+  window.addEventListener("orientationchange", handlePlanViewportChange);
+
+  function openPlanImage(fx, fy, box){
+    const overlay = document.getElementById("planOverlay");
+    const marker = document.getElementById("standMarker");
+    const highlight = document.getElementById("standHighlight");
+    overlay.classList.remove("hidden");
+    updatePlanCloseButtonPosition();
+    resetPlanTransform();
+    initPlanGestures();
+    buildPlanTiles();
+
+    if (typeof fx === "number" && typeof fy === "number"){
+      marker.style.left = (fx * 100) + "%";
+      marker.style.top = (fy * 100) + "%";
+      marker.style.display = "block";
+    } else {
+      marker.style.display = "none";
+    }
+
+    if (box){
+      const pad = 0.0025;
+      highlight.style.left = ((box.x0 - pad) * 100) + "%";
+      highlight.style.top = ((box.top - pad) * 100) + "%";
+      highlight.style.width = ((box.x1 - box.x0 + pad * 2) * 100) + "%";
+      highlight.style.height = ((box.bottom - box.top + pad * 2) * 100) + "%";
+      highlight.style.display = "block";
+    } else {
+      highlight.style.display = "none";
+    }
+  }
+
+  function closePlanOverlay(){
+    document.getElementById("standMarker").style.display = "none";
+    document.getElementById("standHighlight").style.display = "none";
+    document.getElementById("planOverlay").classList.add("hidden");
+    const btn = document.querySelector(".plan-close");
+    if (btn){ btn.style.top = ""; btn.style.right = ""; }
+    const qualityBtn = document.querySelector(".plan-quality-toggle");
+    if (qualityBtn){ qualityBtn.style.top = ""; qualityBtn.style.right = ""; }
+    resetPlanTransform();
+    // On force une mesure propre et un rechargement net des tuiles à la prochaine
+    // ouverture, pour éviter toute dérive ou accumulation d'état entre deux recherches.
+    planBaseRect = null;
+    resetPlanTiles();
+  }
+
+  function resetPlanTiles(){
+    document.querySelectorAll(".plan-tile").forEach(tile => {
+      tile.classList.remove("loaded");
+      tile.removeAttribute("src");
+      delete tile.dataset.loaded;
+    });
+  }
+
+  let planIsHD = true; // le PNG (HD) est l'affichage par défaut
+
+  function togglePlanQuality(){
+    const img = document.getElementById("planImg");
+    const btn = document.getElementById("planQualityToggle");
+    if (!img || !btn) return;
+    planIsHD = !planIsHD;
+    img.src = planIsHD ? "plan-hd.jpg" : "plan-sd.jpg";
+    btn.textContent = planIsHD ? "SD" : "HD";
+    img.onload = () => { measurePlanBaseRect(); };
+  }
+
+  /* ---------- Pinch-zoom / pan manuel (le bouton fermer garde une taille fixe) ---------- */
+  let planScale = 1, planX = 0, planY = 0;
+  let planBaseRect = null; // rect du plan quand scale=1, translate=0 (mesuré une fois à l'ouverture)
+  const PLAN_MIN_SCALE = 1, PLAN_MAX_SCALE = 8;
+  let planGesture = null;
+
+  /* ---------- Tuiles haute résolution (chargées seulement quand nécessaire) ---------- */
+  const TILE_COLS = 5, TILE_ROWS = 4;
+  const TILE_ZOOM_THRESHOLD = 1.3;
+
+  function buildPlanTiles(){
+    const container = document.getElementById("planTiles");
+    if (!container || container.dataset.built) return;
+    container.dataset.built = "1";
+    for (let row = 0; row < TILE_ROWS; row++){
+      for (let col = 0; col < TILE_COLS; col++){
+        const tile = document.createElement("img");
+        tile.className = "plan-tile";
+        tile.alt = "";
+        tile.dataset.row = row;
+        tile.dataset.col = col;
+        tile.dataset.src = `tiles/plan-tile-${row}-${col}.jpg`;
+        tile.style.left = (col * 100 / TILE_COLS) + "%";
+        tile.style.top = (row * 100 / TILE_ROWS) + "%";
+        tile.style.width = (100 / TILE_COLS) + "%";
+        tile.style.height = (100 / TILE_ROWS) + "%";
+        tile.onload = () => tile.classList.add("loaded");
+        container.appendChild(tile);
+      }
+    }
+  }
+
+  function updateVisibleTiles(){
+    if (planScale <= TILE_ZOOM_THRESHOLD || !planBaseRect) return;
+    const scrollEl = document.querySelector(".plan-scroll");
+    if (!scrollEl) return;
+    const scrollRect = scrollEl.getBoundingClientRect();
+
+    const fx0 = (scrollRect.left - planBaseRect.left - planX) / planScale / planBaseRect.width;
+    const fx1 = (scrollRect.left + scrollRect.width - planBaseRect.left - planX) / planScale / planBaseRect.width;
+    const fy0 = (scrollRect.top - planBaseRect.top - planY) / planScale / planBaseRect.height;
+    const fy1 = (scrollRect.top + scrollRect.height - planBaseRect.top - planY) / planScale / planBaseRect.height;
+
+    document.querySelectorAll(".plan-tile").forEach(tile => {
+      if (tile.dataset.loaded) return;
+      const row = parseInt(tile.dataset.row, 10), col = parseInt(tile.dataset.col, 10);
+      const tx0 = col / TILE_COLS, tx1 = (col + 1) / TILE_COLS;
+      const ty0 = row / TILE_ROWS, ty1 = (row + 1) / TILE_ROWS;
+      const overlaps = tx0 < fx1 && tx1 > fx0 && ty0 < fy1 && ty1 > fy0;
+      if (overlaps){
+        tile.dataset.loaded = "1";
+        tile.src = tile.dataset.src;
+      }
+    });
+  }
+
+  function resetPlanTransform(){
+    planScale = 1; planX = 0; planY = 0;
+    applyPlanTransform();
+    measurePlanBaseRect();
+  }
+
+  function measurePlanBaseRect(){
+    requestAnimationFrame(() => {
+      const stage = document.querySelector(".plan-stage");
+      if (!stage) return;
+      const rect = stage.getBoundingClientRect();
+      if (rect.width && rect.height){
+        planBaseRect = rect;
+      } else {
+        // L'image n'a pas encore de dimensions connues (pas chargée) : on réessaie.
+        setTimeout(measurePlanBaseRect, 50);
+      }
+    });
+  }
+
+  function applyPlanTransform(){
+    const stage = document.querySelector(".plan-stage");
+    if (stage){
+      stage.style.transform = `translate(${planX}px, ${planY}px) scale(${planScale})`;
+    }
+    const marker = document.getElementById("standMarker");
+    if (marker){
+      marker.style.setProperty("--counter-scale", 1 / planScale);
+    }
+    updateVisibleTiles();
+  }
+
+  function clampPlanPan(){
+    const scrollEl = document.querySelector(".plan-scroll");
+    if (!scrollEl || !planBaseRect) return;
+    const scaledW = planBaseRect.width * planScale;
+    const scaledH = planBaseRect.height * planScale;
+    const viewW = scrollEl.clientWidth, viewH = scrollEl.clientHeight;
+    if (scaledW <= viewW){
+      planX = (viewW - scaledW) / 2 - planBaseRect.left;
+    } else {
+      const minX = viewW - planBaseRect.left - scaledW;
+      const maxX = -planBaseRect.left;
+      planX = Math.max(minX, Math.min(maxX, planX));
+    }
+    if (scaledH <= viewH){
+      planY = (viewH - scaledH) / 2 - planBaseRect.top;
+    } else {
+      const minY = viewH - planBaseRect.top - scaledH;
+      const maxY = -planBaseRect.top;
+      planY = Math.max(minY, Math.min(maxY, planY));
+    }
+  }
+
+  function touchDist(t0, t1){
+    return Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+  }
+  function touchMid(t0, t1){
+    return { x: (t0.clientX + t1.clientX) / 2, y: (t0.clientY + t1.clientY) / 2 };
+  }
+
+  function initPlanGestures(){
+    const scrollEl = document.querySelector(".plan-scroll");
+    if (!scrollEl || scrollEl.dataset.gesturesBound) return;
+    scrollEl.dataset.gesturesBound = "1";
+
+    scrollEl.addEventListener("touchstart", (e) => {
+      if (!planBaseRect){
+        // Filet de sécurité : si la mesure asynchrone n'a pas encore eu lieu
+        // (geste très rapide juste après l'ouverture), on la fait maintenant.
+        const stageNow = document.querySelector(".plan-stage");
+        if (!stageNow) return;
+        const prevTransform = stageNow.style.transform;
+        stageNow.style.transform = "translate(0px, 0px) scale(1)";
+        planBaseRect = stageNow.getBoundingClientRect();
+        stageNow.style.transform = prevTransform;
+        if (!planBaseRect.width || !planBaseRect.height) { planBaseRect = null; return; }
+      }
+      if (e.touches.length === 2){
+        const mid = touchMid(e.touches[0], e.touches[1]);
+        planGesture = {
+          mode: "pinch",
+          startDist: touchDist(e.touches[0], e.touches[1]),
+          startScale: planScale,
+          // point local (dans le repère non transformé du plan) sous le doigt
+          localX: (mid.x - planBaseRect.left - planX) / planScale,
+          localY: (mid.y - planBaseRect.top - planY) / planScale
+        };
+      } else if (e.touches.length === 1){
+        planGesture = {
+          mode: "pan",
+          startX: planX, startY: planY,
+          startPointX: e.touches[0].clientX,
+          startPointY: e.touches[0].clientY
+        };
+      }
+    }, { passive: true });
+
+    scrollEl.addEventListener("touchmove", (e) => {
+      if (!planGesture || !planBaseRect) return;
+      e.preventDefault();
+      if (planGesture.mode === "pinch" && e.touches.length === 2){
+        const dist = touchDist(e.touches[0], e.touches[1]);
+        const ratio = dist / planGesture.startDist;
+        planScale = Math.max(PLAN_MIN_SCALE, Math.min(PLAN_MAX_SCALE, planGesture.startScale * ratio));
+        const mid = touchMid(e.touches[0], e.touches[1]);
+        planX = mid.x - planBaseRect.left - planGesture.localX * planScale;
+        planY = mid.y - planBaseRect.top - planGesture.localY * planScale;
+        clampPlanPan();
+        applyPlanTransform();
+      } else if (planGesture.mode === "pan" && e.touches.length === 1){
+        planX = planGesture.startX + (e.touches[0].clientX - planGesture.startPointX);
+        planY = planGesture.startY + (e.touches[0].clientY - planGesture.startPointY);
+        clampPlanPan();
+        applyPlanTransform();
+      }
+    }, { passive: false });
+
+    scrollEl.addEventListener("touchend", (e) => {
+      if (e.touches.length === 0){
+        planGesture = null;
+      } else if (e.touches.length === 1){
+        planGesture = {
+          mode: "pan",
+          startX: planX, startY: planY,
+          startPointX: e.touches[0].clientX,
+          startPointY: e.touches[0].clientY
+        };
+      }
+    }, { passive: true });
+  }
+
+  function toggleHeaderPanel(key){
+    if (openHeaderBadge === key){
+      openHeaderBadge = null;
+    } else {
+      openHeaderBadge = key;
+    }
+    Object.entries(HEADER_BADGE_IDS).forEach(([k, id]) => {
+      document.getElementById(id).classList.toggle("active", k === openHeaderBadge);
+    });
+    if (!openHeaderBadge){
+      headerPanel.classList.add("hidden");
+      headerPanel.innerHTML = "";
+      return;
+    }
+    headerPanel.innerHTML = renderHeaderPanelContent(openHeaderBadge);
+    headerPanel.classList.remove("hidden");
+  }
+
+  searchInput.addEventListener("input", render);
+  clearBtn.addEventListener("click", () => { searchInput.value = ""; render(); searchInput.focus(); });
+
+  /* ---------- Démarrage ---------- */
+  if (alreadyUnlocked){
+    showApp();
+  } else {
+    passwordInput.focus();
+  }
+</script>
+
+</body>
+</html>
